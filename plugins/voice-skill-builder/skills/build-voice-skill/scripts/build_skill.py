@@ -28,7 +28,7 @@ sys.path.insert(0, str(TEMPLATE / "scripts"))
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.1.0"
+BUILDER_VERSION = "0.2.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
