@@ -77,12 +77,12 @@ ENGINE=plugins/voice-skill-builder/skills/build-voice-skill/template/scripts
 BUILDER=plugins/voice-skill-builder/skills/build-voice-skill/scripts
 WORK=~/voice-skill-work
 
-python3 $ENGINE/style_profile.py mine/*.tex -o $WORK/profile.json --md $WORK/stats.md --check
-python3 $BUILDER/find_slips.py mine/*.tex -o $WORK/slip_candidates.md
+python3 $ENGINE/style_profile.py ~/papers/*.tex -o $WORK/profile.json --md $WORK/stats.md --check
+python3 $BUILDER/find_slips.py ~/papers/*.tex -o $WORK/slip_candidates.md
 # write $WORK/watchlist.json and $WORK/voice_notes.md (formats in the skill's references/ folder)
 python3 $BUILDER/build_skill.py --name my-voice --profile $WORK/profile.json \
     --notes $WORK/voice_notes.md --watchlist $WORK/watchlist.json --out $WORK/build/my-voice
-python3 $BUILDER/validate_skill.py $WORK/build/my-voice --samples mine/*.tex
+python3 $BUILDER/validate_skill.py $WORK/build/my-voice --samples ~/papers/*.tex
 python3 $BUILDER/install_skill.py $WORK/build/my-voice
 ```
 
