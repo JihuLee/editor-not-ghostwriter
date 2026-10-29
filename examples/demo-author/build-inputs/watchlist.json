@@ -1,0 +1,5 @@
+[
+  {"match": "allows to", "fix": "allows us to ... / allows ...-ing", "count": 4, "note": "active 'allow' needs an object or a gerund"},
+  {"match": "despite of", "fix": "despite / in spite of", "count": 2},
+  {"match": "less (?:samples|sensors|readings|units|events)", "regex": true, "fix": "fewer", "count": 2, "note": "countable nouns take 'fewer'", "label": "less + countable noun"}
+]

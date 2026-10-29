@@ -1,0 +1,14 @@
+{
+  "name": "editor-not-ghostwriter",
+  "description": "Build a personal voice-preserving revision skill from your own writing samples.",
+  "owner": {
+    "name": "Jihu Lee"
+  },
+  "plugins": [
+    {
+      "name": "voice-skill-builder",
+      "source": "./plugins/voice-skill-builder",
+      "description": "Turns samples of your own writing into a private skill that edits your drafts minimally and keeps them sounding like you."
+    }
+  ]
+}

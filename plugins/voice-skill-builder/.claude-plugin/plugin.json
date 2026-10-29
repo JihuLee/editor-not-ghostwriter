@@ -1,0 +1,14 @@
+{
+  "name": "voice-skill-builder",
+  "displayName": "Voice Skill Builder",
+  "version": "0.1.0",
+  "description": "Build a private skill that revises your drafts in your own voice, from samples of your own writing.",
+  "author": {
+    "name": "Jihu Lee",
+    "url": "https://github.com/JihuLee"
+  },
+  "homepage": "https://github.com/JihuLee/editor-not-ghostwriter",
+  "repository": "https://github.com/JihuLee/editor-not-ghostwriter",
+  "license": "MIT",
+  "keywords": ["writing", "latex", "markdown", "academic-writing", "style", "revision", "skills"]
+}

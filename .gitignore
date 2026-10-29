@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# build outputs
+dist/
+build/
+
+# personal material: never commit your own samples or built skills
+voice-skill-work/
+samples-private/
+*.skill

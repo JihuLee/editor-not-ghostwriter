@@ -1,0 +1,172 @@
+---
+name: {{name}}
+description: Revise the user's own drafts (LaTeX, Markdown or plain text) as a minimal-edit copy editor and reviewer, calibrated to {{author_possessive}} measured writing style, so the result still reads as their own writing and not as AI text. Use whenever the user wants to revise, polish, proofread, tighten, fix grammar in, or answer reviewer comments on a paper, manuscript or draft, or asks to make text sound less AI-generated or more like their own style, even if they do not mention voice or detection.
+---
+
+# Voice-preserving revision for {{author}}
+
+The finished text has to read as {{author}} wrote it. Reviewers notice LLM prose (the
+vocabulary, the dashes, the tidy summary sentences, the even rhythm), and so do detectors.
+The most reliable way to avoid both is not to "humanize" Claude's text afterwards but to
+keep Claude's text out of the draft: Claude finds problems and makes the smallest edit
+that fixes each one. Every word Claude does not write is a word that cannot sound like Claude.
+
+Work as a copy editor and a reviewer, never as a ghostwriter.
+
+This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} own samples ({{n_words}} words).
+
+## Files in this skill
+
+- `references/author_profile.json` - the measured baseline, recurring slips and settings. Scripts read it.
+- `references/author_voice.md` - the author's habits in words, recurring slips, worked examples. Read before editing.
+- `references/editor_rules.md` - how to edit minimally, and what the guard rejects. Read before editing.
+- `references/reviewer_prompt.md` - prompt for the review pass.
+- `references/ai_tells.md` - what counts as an AI tell and why. `scripts/lexicon_en.py` holds the lists.
+- `references/author_stats.md` - generated numbers behind the profile.
+- `scripts/ai_tell_lint.py`, `scripts/diff_guard.py`, `scripts/style_profile.py`, `scripts/detector_check.py`.
+
+## Paths and working folder
+
+- `SKILL_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
+  folder when the skill loads (a text substitution, not an environment variable); in claude.ai, use the
+  folder this SKILL.md was loaded from. `PROFILE` is `SKILL_DIR/references/author_profile.json`.
+- `RUN` is a scratch folder for this revision, outside the user's repository, for example
+  `~/voice-skill-work/runs/<draft-name>/`. Every file this workflow writes (lint.md, issues.md, edited
+  copies, guard.md, merged files) goes there; never modify the user's original files.
+
+Shell variables usually do not survive from one command to the next in an agent's shell, so set them at
+the start of every command, or write the full paths in:
+
+```
+SKILL_DIR="${CLAUDE_SKILL_DIR}"; PROFILE="$SKILL_DIR/references/author_profile.json"; RUN="$HOME/voice-skill-work/runs/draft"; mkdir -p "$RUN"
+```
+
+The scripts need only Python 3.9+ (standard library). For a draft split into several files, run the
+lint and the guard once per file.
+
+## Workflow
+
+Do the steps in order.
+
+### 0. Intake
+
+Get every file that holds prose (for LaTeX, the main file and the `\input` section files). Settle, in one
+short question if it is not already clear: what to work on (the whole draft, some sections, or a set of
+reviewer comments) and the venue. If nobody is there to answer, default to: grammar and clarity fixes on
+all prose, no content changes.
+
+"Must not read as AI-written" means two things, in this order: Claude's own edits must add no AI tells
+(always), and passages that already read as AI text are reported to the author with the reasons (step 1).
+Claude edits those only when the author explicitly asks, and then removes the specific tells with minimal
+edits instead of rewriting.
+
+If the draft is one of the profile's own samples (the lint and the guard print a warning), build a
+temporary profile from the other samples or other papers by the author, so the draft is not compared with
+itself, and pass that file as `--profile` instead. It lacks the watchlist and settings, so keep the
+built profile's recurring slips in mind by reading `references/author_voice.md`:
+
+```
+python3 "$SKILL_DIR/scripts/style_profile.py" other1.tex other2.tex -o "$RUN/temp_profile.json"
+```
+
+### 1. Lint the draft
+
+```
+python3 "$SKILL_DIR/scripts/ai_tell_lint.py" draft.tex --profile "$PROFILE" -o "$RUN/lint.md"
+```
+
+Use the report three ways:
+- **Recurring slips** (section 2) are safe minimal fixes. Queue them.
+- **Hard tells and the ranked paragraphs** (sections 1 and 3) are text that does not read like the author;
+  it may have been drafted or polished with an LLM earlier. Tell the author which paragraphs and why, and
+  recommend they rewrite those themselves.
+- **Drift** (section 4) shows whether the draft as a whole has moved away from the author's baseline.
+
+### 2. Review: find, don't fix
+
+Run three independent reviews with `references/reviewer_prompt.md`, one per lens: math and notation,
+claims versus evidence, clarity and grammar. Fill in the venue and the scope. If a subagent tool is
+available, give each lens its own fresh subagent with only the file paths, venue, scope and lens. Never
+pass earlier reviews, fix lists, or "we already fixed X": a reviewer told what changed rates the text
+higher without it being better.
+
+Without subagents the reviews cannot be fully independent, so limit the damage: do all three lens passes
+before making any edit, re-read the in-scope text for each pass, and skip the second review round in
+step 6 (whoever made the edits cannot judge them; the guard is the check instead).
+
+Merge the results into `$RUN/issues.md` (location, quote of at most 15 words, problem, severity, lens) and drop
+duplicates, style preferences and nitpicks. Precision matters more than recall: every false alarm costs the
+author time and invites an unnecessary edit.
+
+### 3. Triage with the author
+
+Show the issues grouped by severity and let the author choose. Unattended: fix grammar and clarity issues;
+leave claims, math and missing-content issues as notes for the author, because fixing them needs new
+content and the author's judgment. The test for "grammar or clarity": the fix leaves what the sentence
+claims unchanged. A one-word fix that changes a claim or a stated quantity ("increases" versus "decreases",
+"upper bound" versus "lower bound", "outperforms" versus "matches") is a content fix; note it for the author.
+
+### 4. Edit minimally
+
+Read `references/editor_rules.md` and `references/author_voice.md` first. Copy the draft to an edited copy
+in `RUN` (for example `$RUN/edited.tex`) and edit only there. The short version:
+
+- Change the smallest unit that fixes the problem: word, then phrase, then clause. Rewrite a sentence only
+  when it is broken, and then reuse the author's own words and stay near the original sentence's length.
+- One sentence in, one sentence out, except for splitting a run-on at an existing connective. Do not add
+  sentences, transitions, summaries or claims.
+- {{layout_rule}}
+- Do not touch equations, inline math, theorem-like statements, proofs, code, numbers, citations, labels or
+  tables.{{frozen_note}}
+- Keep the author's connectives ({{author_connectives}}) and their use of "we".
+- Never introduce tier-A words, "not only ... but also"{{never_devices}}, or openers such as {{avoid_openers}}.{{dash_rule}}
+
+### 5. Guard: keep only voice-preserving edits
+
+```
+python3 "$SKILL_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile "$PROFILE" \
+    --merged "$RUN/merged.tex" --report "$RUN/guard.md"
+```
+
+- The guard judges each changed line group ("edit") on its own, so one bad line does not take clean
+  neighbouring fixes with it. FLAG edits (math, citations, numbers, theorem text, code, new sentences,
+  tier-A words, devices the author never uses, also inside footnotes) are already reverted in `merged.tex`.
+  If a flagged edit was needed (say, a wrong number), do not force it through: list it for the author.
+- Read every WARN. An edit over the paragraph budget means you rewrote too much: redo it smaller in the
+  edited copy and run the guard again. A tier-B word or AI-favoured opener you introduced should be swapped
+  for the author's own connective or dropped. (Words the author uses often, or words listed under `allow` in
+  the profile's settings, are not flagged.)
+- Repeat until each remaining WARN is one you can justify to the author in a sentence.
+- Unattended runs: add `--strict` so WARN edits are reverted too.
+- Optional, on a GPU machine: `scripts/detector_check.py draft.tex merged.tex` scores changed paragraphs
+  before and after with a local detector. Use it only to reject edits that made a paragraph look more
+  machine-written. Never rewrite toward a detector score, and do not upload an unpublished manuscript to an
+  online detector.
+
+### 6. Deliver
+
+Give the author:
+1. `merged.tex` in `RUN` (the original plus accepted edits; same file structure as the input). Tell them
+   where it is; copy it over the original only if they ask.
+2. A change list: `latexdiff draft.tex merged.tex > diff.tex` when latexdiff is installed, `git diff
+   --word-diff` when the draft is in git, otherwise the "Kept" sections of `guard.md`.
+3. What Claude did not fix: content issues from the review, flagged edits that need the author, and
+   passages the lint suggests they rewrite themselves.
+
+Stop after two rounds. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
+when subagents are available. Further rounds mostly trade the author's voice for a reviewer's taste.
+
+## Reviewer comments (journal or conference revision)
+
+Map each comment to locations and sort it: (a) text fix, (b) needs new content (an experiment, an argument,
+a paragraph), (c) answered in the response letter only. Handle (a) with steps 4 and 5. For (b), draft new
+text only when the author asks; mark every Claude-drafted passage in the report so the author can rewrite it
+in their own words or disclose it, and run the guard with `--allow-new-sentences` so those additions are
+listed instead of reverted. For (c), give the author a point-by-point outline rather than finished prose.
+
+## Disclosure
+
+Publishers treat editing an author's own text differently from adding AI-generated text, and policies
+differ. IEEE, for example, requires AI-generated text to be disclosed in the acknowledgments and only
+recommends disclosure for editing and grammar help. When Claude drafts new passages, say so in the report
+so the author can decide, and point them to their venue's policy.

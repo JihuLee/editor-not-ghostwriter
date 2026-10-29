@@ -1,0 +1,284 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx,booktabs,xspace}
+\usepackage[numbers]{natbib}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newcommand{\sys}{\textsc{Breeze}\xspace}
+
+\title{Adaptive Sampling Intervals for Battery-Powered Air-Quality Sensors}
+\author{A. N. Author}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+
+Low-cost air-quality sensors are deployed in growing numbers, yet most of
+them sample at a fixed interval that is chosen once and never revisited. A
+fixed interval wastes energy when the air is stable and misses short
+pollution peaks when it is not. We present \sys, a controller that adapts
+the sampling interval of each sensor to the recent variability of its own
+readings. \sys needs no model of the environment; it keeps a running
+estimate of how fast the signal changes and maps that estimate to the next
+interval. On a deployment of 18 sensors over four months, \sys extends
+battery life by 31\% on average and detects more pollution peaks than a
+fixed schedule that uses the same energy. We stress that the controller
+allows to trade energy for coverage with a single parameter, which makes it
+easy to tune in the field.
+
+\end{abstract}
+
+\section{Introduction}
+
+Air-quality sensors that cost less than a hundred dollars have changed how
+cities collect pollution data. A municipality can now place dozens of them
+along a single road, and research groups run networks of several hundred
+units \citep{kumar2015rise,morawska2018applications}. Most of these devices
+run on batteries or small solar panels; their lifetime is set by how often
+they wake up, sample and transmit.
+
+The common practice is to fix the sampling interval at deployment time.
+Thirty seconds and five minutes are typical choices, and they are rarely
+changed afterwards. This is wasteful in two directions. When the air is
+calm, as it is on most nights, the sensor records many nearly identical
+readings and spends energy on each of them. When a truck idles next to the
+sensor or a fire starts nearby, the concentration can rise and fall within a
+minute; a five-minute schedule will often miss the peak entirely.
+
+In this paper we ask a simple question: can a sensor decide on its own when
+to take the next reading, using nothing but its recent readings? We answer
+it with \sys, a small controller that runs on the sensor itself. \sys
+estimates how quickly the signal has been changing and sets the next
+interval accordingly; a fast-changing signal gets short intervals, a flat
+one gets long intervals. The whole trade-off between energy and coverage is
+expressed by one parameter, the target error $\epsilon$. Put differently,
+the operator states how much error is acceptable, and the sensor works out
+how often it has to sample to stay within it.
+
+Our contributions are as follows:
+\begin{itemize}
+  \item We describe \sys, an interval controller that needs no model of the environment and fits in
+  2 kB of memory.
+  \item We show that, under a bound on the rate of change of the signal, \sys keeps the error below
+  $\epsilon$ (Theorem~\ref{thm:error}).
+  \item We report results from a four-month deployment of 18 sensors in two cities, where \sys extends
+  battery life by 31\% on average.
+\end{itemize}
+
+\section{Related Work}
+
+Adaptive sampling has a long history in wireless sensor networks. Early work
+adjusts the rate of a whole network from a central node
+\citep{jain2004adaptive}, which requires a reliable uplink that low-cost
+deployments seldom have. Later methods predict the next reading with a
+time-series model and skip the samples that the model predicts well
+\citep{alippi2010adaptive,silva2017adaptive}. These methods save energy, but
+they inherit the weaknesses of the model; a model trained in summer predicts
+winter readings poorly, and retraining on the device is expensive.
+
+A second line of work treats sampling as a compressed sensing problem and
+reconstructs the signal from random samples \citep{chen2012compressed}. The
+guarantees are strong when the signal is sparse in a known basis.
+Air-quality signals, however, are dominated by irregular events whose timing
+matters more than their spectrum. We stress that our goal is narrower: we do
+not reconstruct the signal from as few samples as possible, but keep its
+error below a level that the operator chose.
+
+Duty cycling, finally, switches the radio and the sensor off between
+scheduled wake-ups \citep{anastasi2009energy}. It is complementary to our
+work. \sys decides when the next wake-up happens; a duty-cycling scheme
+decides what the device does while it is awake. In our deployment both run
+together.
+
+\section{Method}
+
+In what follows, $x(t)$ denotes the concentration measured by one sensor at
+time $t$, and $t_1 < t_2 < \dots$ are the sampling times. Between two
+samples, the sensor reports the last value it measured; this is what most
+dashboards display anyway. The error at time $t \in [t_k, t_{k+1})$ is
+therefore $|x(t) - x(t_k)|$.
+
+\subsection{Interval rule}
+
+\sys keeps an estimate $\hat{r}_k$ of the recent rate of change. After every
+sample it updates the estimate as an exponentially weighted average:
+
+\begin{equation}
+  \hat{r}_k = \lambda \frac{|x(t_k) - x(t_{k-1})|}{t_k - t_{k-1}} + (1 - \lambda)\, \hat{r}_{k-1}.
+  \label{eq:rate}
+\end{equation}
+
+The next interval is the time it would take the signal to drift by
+$\epsilon$ at that rate, clipped to the range that the hardware supports:
+
+\begin{equation}
+  \Delta_k = \min\bigl\{\Delta_{\max}, \max\{\Delta_{\min}, \epsilon / \hat{r}_k\}\bigr\}.
+  \label{eq:interval}
+\end{equation}
+
+The rule has two parameters besides $\epsilon$. The smoothing weight
+$\lambda$ controls how quickly \sys reacts; we use $\lambda = 0.3$
+throughout. The bounds $\Delta_{\min}$ and $\Delta_{\max}$ come from the
+hardware and from the operator: the sensor cannot sample faster than its
+warm-up time, and the operator usually wants at least one reading every 15
+minutes for the dashboard. The controller allows to set both bounds per
+sensor, which is useful when units of different generations share a network.
+
+\subsection{Error guarantee}
+
+The rule can only work if the signal does not change much faster than the
+estimate suggests. We make this precise with a bound on the rate of change.
+
+\begin{thm}\label{thm:error}
+  Suppose $|x'(t)| \le (1 + \delta)\, \hat{r}_k$ on $[t_k, t_{k+1})$ for some $\delta \ge 0$.
+  Then the error on this interval is at most $(1 + \delta)\, \epsilon$.
+\end{thm}
+\begin{proof}
+  For $t$ in the interval, $|x(t) - x(t_k)| \le (t - t_k) \sup |x'| \le \Delta_k (1 + \delta)\, \hat{r}_k
+  \le (1 + \delta)\, \epsilon$, where the last step uses $\Delta_k \le \epsilon / \hat{r}_k$.
+\end{proof}
+
+The assumption fails exactly when a sudden event starts in the middle of a
+long interval. \sys cannot see such an event until its next sample; the
+lemma below bounds how long it stays blind.
+
+\begin{lem}\label{lem:blind}
+  After an event that raises the rate of change to $r^\ast$, \sys returns to intervals of length at most
+  $\epsilon / (\lambda r^\ast)$ within one sample.
+\end{lem}
+
+Concretely, with $\lambda = 0.3$ and the rates we observed during traffic
+peaks, the blind period is at most one long interval, after which the
+controller samples fast enough to follow the event. The proof is in
+Appendix~\ref{app:proof}.
+
+\section{Experiments}
+
+\subsection{Deployment}
+
+We deployed 18 sensors in two cities from November to February. Each unit
+carries a low-cost particulate sensor\footnote{The sensor model does not
+matter for the method; any sensor with a warm-up time below ten seconds
+works.}, a microcontroller and a 3000 mAh battery. Nine units ran \sys with
+$\epsilon = 2$ (in $\mu$g/m$^3$); the other nine ran a fixed schedule. To
+make the comparison fair, we chose the fixed interval so that both groups
+used the same energy in the first week, which gave an interval of 140
+seconds.
+
+We measure three things: battery life, the error against a co-located
+reference station, and the number of pollution peaks that each group
+detects. A peak is a rise of more than 20 units within five minutes in the
+reference data. The reference stations sample every ten seconds and are
+calibrated every month by the city.
+
+\subsection{Energy model}
+
+Most of the energy of a sample goes into the warm-up of the sensor, not into
+the measurement itself. On our hardware one sample costs about 1.2 J, of
+which the fan and the laser take most; the microcontroller is asleep the
+rest of the time and draws almost nothing. Battery life is therefore close
+to proportional to the mean interval. This makes the comparison simple: a
+schedule that samples half as often lives about twice as long, as long as
+the radio is not the bottleneck.
+
+The radio matters less than one might think. Readings are queued and
+uploaded every 15 minutes regardless of the schedule, so the cost of
+transmission is the same for both groups. We report it separately in the
+appendix for completeness.
+
+\subsection{Results}
+
+Table~\ref{tab:main} summarizes the results. \sys extends battery life from
+38 to 50 days on average, a gain of 31\%. Despite of the longer life, it
+detects more peaks: 87\% of the peaks in the reference data, against 61\%
+for the fixed schedule. The mean error is similar for both groups. \sys
+spends its samples where the error would otherwise be large, and saves them
+where it would be small anyway.
+
+\begin{table}[t]
+  \centering
+  \caption{Results over the four-month deployment (mean over nine sensors per group).}
+  \label{tab:main}
+  \begin{tabular}{lccc}
+    \toprule
+    & Battery life (days) & Peaks detected & Mean error \\
+    \midrule
+    Fixed (140 s) & 38 & 61\% & 1.9 \\
+    \sys & 50 & 87\% & 1.8 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Figure~\ref{fig:night} shows a typical night. Between midnight and five in
+the morning, \sys stretches its interval to the upper bound of 15 minutes
+and takes less samples than the fixed schedule by a factor of six. When
+traffic starts, the interval drops below 30 seconds within two samples,
+which is what Lemma~\ref{lem:blind} predicts.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/night.pdf}
+  \caption{Sampling interval of one sensor during a night and the following morning.}
+  \label{fig:night}
+\end{figure}
+
+\subsection{Sensitivity}
+
+We repeated the deployment for one month with three values of $\epsilon$. As
+expected, a smaller target error shortens the intervals and the battery
+life; the relation is close to linear over the range we tried. We stress
+that the operator does not need to understand the controller to choose
+$\epsilon$, since it is expressed in the same unit as the measurements.
+
+\section{Discussion}
+
+\sys has two limitations. First, it reacts to change that it has already
+seen; an event that starts and ends within one long interval is invisible to
+it. In our data such events were rare, but in places with very short bursts,
+such as next to a bus stop, a smaller upper bound is advisable. Second, the
+rate estimate is noisy when the sensor itself is noisy. As a consequence, a
+poorly calibrated sensor samples more often than it should, which wastes
+energy but does not hurt accuracy.
+
+A practical point concerns tuning. Operators tend to choose $\epsilon$ by
+looking at a week of data, and that is a reasonable procedure; the
+controller is not sensitive to small changes of the target. What matters
+more is the upper bound $\Delta_{\max}$, since it decides how long the
+sensor can stay blind. We set it from the shortest event that the operator
+cares about, not from the battery.
+
+In short, the controller trades a little complexity on the device for a
+large saving in energy, and it does so without a model of the environment.
+We see this as its main advantage over methods that predict the next
+reading.
+
+\section{Conclusion}
+
+We presented \sys, an adaptive sampling controller for battery-powered
+air-quality sensors. It needs one parameter, it runs in a few kilobytes, and
+in a four-month deployment it extended battery life by 31\% while detecting
+more pollution peaks. The code and the deployment data are available on
+request.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Proof of Lemma~\ref{lem:blind}}\label{app:proof}
+
+We give the argument for a step change in the rate; the general case follows
+the same steps with more notation.
+
+\begin{proof}
+  Let the event start at $t^\ast \in [t_k, t_{k+1})$. At $t_{k+1}$ the observed rate is at least
+  $r^\ast (t_{k+1} - t^\ast) / \Delta_k$, so by \eqref{eq:rate} the new estimate is at least $\lambda$ times
+  this value. By \eqref{eq:interval} the next interval is then at most $\epsilon / (\lambda r^\ast)$.
+\end{proof}
+
+The bound is loose when the event starts right before a sample, since the
+first observed rate is then small. In practice the second sample after the
+event already brings the interval close to its final value.
+
+\end{document}

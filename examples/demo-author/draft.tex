@@ -1,0 +1,69 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx,booktabs,xspace}
+\usepackage[numbers]{natbib}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newcommand{\sys}{\textsc{Breeze}\xspace}
+
+\title{Energy-Aware Scheduling of Sensor Uploads}
+\author{A. N. Author}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+In today's rapidly evolving landscape of urban sensing, efficient data
+transmission plays a pivotal role in the longevity of battery-powered sensor
+networks. Notably, the radio often accounts for the majority of a sensor's
+energy budget---a fact that is frequently overlooked. This paper delves into
+the intricate trade-off between upload frequency and data freshness.
+Overall, this highlights the need for a comprehensive and principled
+approach.
+
+Most low-cost sensors upload each reading as soon as it is taken. This is
+simple, but the radio dominates the energy budget; waking it up costs as
+much as several hundred readings \citep{anastasi2009energy}. Batching the
+uploads allows to save most of that energy, at the price of data that
+arrives late. In what follows, we ask how long a sensor can wait before the
+delay starts to matter.
+
+\section{Method}
+
+We model the value of a reading as decreasing with its age. A reading of age
+$a$ has value $v(a) = e^{-a / \tau}$, where $\tau$ is set by the
+application; a dashboard that people check every hour has a much larger
+$\tau$ than an alarm. The sensor uploads a batch when the value it would
+lose by waiting longer exceeds the energy it would save.
+
+\begin{thm}\label{thm:batch}
+  Under the model above, the optimal batch size grows with the square root of $\tau$.
+\end{thm}
+
+Put differently, an application that tolerates four times the delay should
+wait for twice as many readings. We stress that this rule needs no knowledge
+of the radio beyond the energy cost of one wake-up, which the manufacturer
+usually reports.
+
+\section{Experiments}
+
+We ran the scheduler on 12 sensors for six weeks, next to 12 sensors that
+upload every reading. The scheduler sends less samples per upload than a
+fixed batch of 50 would, but it uploads them when they are still useful.
+Battery life went from 21 to 47 days, and the median delay of a reading was
+9 minutes.
+
+Our findings underscore the importance of adaptive batching. Moreover, the
+proposed scheduler seamlessly integrates with existing firmware, paving the
+way for more sustainable deployments. In essence, it is not just an energy
+optimization but a holistic rethinking of how sensors communicate.
+
+\section{Conclusion}
+
+We presented a scheduler that batches uploads by the value of the data. It
+more than doubles battery life in our deployment, and it needs one parameter
+that the application already knows.
+
+\end{document}

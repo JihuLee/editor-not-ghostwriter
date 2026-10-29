@@ -1,0 +1,183 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx,booktabs,xspace}
+\usepackage[numbers]{natbib}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newcommand{\eg}{e.g.\xspace}
+
+\title{Detecting Clock Drift in Low-Cost Sensor Networks}
+\author{A. N. Author}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+
+Cheap sensors keep time with cheap oscillators, and their clocks drift by
+several seconds per day. When readings from many sensors are merged, this
+drift shifts events in time and blurs the picture of how pollution moves
+through a city. We propose a method that detects and corrects drift after
+the fact, using only the readings themselves. The idea is that sensors close
+to each other see the same events; the time lag between their versions of an
+event estimates their relative drift. On a network of 24 sensors, the method
+recovers the drift of each unit to within 0.4 seconds per day, which allows
+to align the readings without any extra hardware.
+
+\end{abstract}
+
+\section{Introduction}
+
+Every reading a sensor sends comes with a timestamp, and most analyses take
+that timestamp at face value. For a single sensor this is harmless. For a
+network it is not: an event that passes two sensors one minute apart is
+recorded with a lag of one minute plus the difference of their clock errors.
+If the clocks drift, the lag drifts with them, and estimates of wind speed
+or of the direction in which a plume travels become unreliable.
+
+The usual remedy is to synchronize the clocks over the network, \eg with NTP
+or a GPS receiver \citep{elson2002fine}. Both are often unavailable on
+low-cost units. Many deployments use radios that only send and cannot
+receive, and a GPS receiver adds cost and drains the battery. As a
+consequence, much of the data that low-cost networks collect carries
+timestamps that nobody can trust to better than a few minutes.
+
+We take a different route and estimate the drift afterwards, from the data.
+Concretely, we use the fact that neighbouring sensors observe the same
+events: a delivery truck, a bonfire, the morning traffic. The lag between
+two copies of the same event has a real part, the travel time of the air,
+and a part that is due to the clocks. Over many events the real part
+averages to a constant, while the clock part grows linearly in time.
+Separating the two gives the relative drift of every pair of sensors; a
+least-squares fit turns the pairs into one estimate per sensor. The method
+needs no extra hardware and works with less sensors than one might expect,
+since three neighbours per sensor are enough in our experiments.
+
+\section{Related Work}
+
+Clock synchronization in sensor networks is a mature topic. Protocols such
+as reference broadcast \citep{elson2002fine} and flooding-based schemes
+\citep{maroti2004flooding} reach microsecond accuracy, but they all need
+nodes that can receive messages. Post-hoc methods are less common. Some
+align records by matching them to an external signal, such as the mains
+frequency in audio recordings; others use known events, such as a scheduled
+test alarm. Our setting has neither, and we rely on events that nobody
+scheduled.
+
+Lag estimation by cross-correlation is standard in acoustics and in
+seismology, where it is used to locate sources. We borrow the tool, not the
+goal: we do not locate events, and we treat the travel time of the air as a
+nuisance rather than as the quantity of interest.
+
+\section{Method}
+
+In what follows, sensor $i$ reports the time $\tau_i(t) = t + a_i + b_i t$,
+where $a_i$ is an offset and $b_i$ the drift rate. We want to estimate $b_i$
+for every sensor. The offsets matter less, since most analyses only compare
+readings within a day.
+
+For two neighbouring sensors $i$ and $j$, we cut the readings into windows
+of one hour and find, in each window, the lag that maximizes the
+cross-correlation of the two series. Let $\ell_{ij}(w)$ be that lag in
+window $w$. Recall that the lag contains the travel time of the air, which
+we treat as noise with a constant mean. We then fit
+
+\begin{equation}
+  \ell_{ij}(w) = c_{ij} + (b_i - b_j)\, t_w + \varepsilon_{ij}(w)
+  \label{eq:lag}
+\end{equation}
+
+by least squares, which gives an estimate of the difference $b_i - b_j$ for
+every pair. Put differently, each pair of neighbours contributes one linear
+equation in the unknown drift rates.
+
+The pairwise equations determine the drift rates only up to a common
+constant. To fix it, we need one sensor with a trusted clock, or we assume
+that the drift rates average to zero across the network. We use the second
+option unless a reference station is available; the error it introduces is
+the mean drift of the network, which is small when the units come from
+different production batches.
+
+\begin{thm}\label{thm:var}
+  If each window lag has variance at most $\sigma^2$, the least-squares estimate of $b_i - b_j$ from
+  $n$ windows spanning a time $T$ has variance at most $12 \sigma^2 / (n T^2)$.
+\end{thm}
+
+The bound explains why long recordings help so much: the variance falls with
+the square of the recording length. A week of data is enough for most pairs
+in our network. The proof is the standard argument for the slope of a
+least-squares line and is given in Appendix~\ref{app:var}.
+
+\section{Experiments}
+
+We installed 24 sensors in a residential area, each within 300 meters of at
+least three others. Six of them received a GPS module that recorded the true
+time; these serve as ground truth and are hidden from the method. Despite of
+the simple setup, the network had the usual problems of field work: two
+units lost power for several days, and one was moved by a resident.
+
+Table~\ref{tab:drift} compares the estimated drift of the six GPS units with
+their true drift. The mean absolute error is 0.4 seconds per day, against
+true drift rates between 2 and 9 seconds per day. The error is largest for
+the unit that was moved, since its neighbours changed halfway through the
+recording\footnote{We kept this unit in the evaluation on purpose; dropping
+it lowers the mean error to 0.3 seconds per day.}.
+
+\begin{table}[t]
+  \centering
+  \caption{Estimated and true drift of the six units with GPS (seconds per day).}
+  \label{tab:drift}
+  \begin{tabular}{lcccccc}
+    \toprule
+    Unit & G1 & G2 & G3 & G4 & G5 & G6 \\
+    \midrule
+    True & 2.1 & 4.8 & 9.0 & 3.3 & 6.2 & 5.5 \\
+    Estimated & 2.4 & 4.6 & 8.7 & 3.1 & 7.0 & 5.6 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+We also checked how the accuracy depends on the number of neighbours. With
+two neighbours the error doubles; with four or more it barely changes. We
+stress that the neighbours do not have to be close in a strict sense. Any
+sensor that sees the same events at a stable lag will do.
+
+The window length is the one setting that needs care. Windows shorter than
+half an hour contain too few events, and the lag estimates become noisy;
+windows longer than three hours average over changes in the wind. One hour
+worked well in our data. To be safe, we recommend checking the stability of
+the lag estimates on a few pairs before running the full fit.
+
+\section{Discussion}
+
+The method assumes that the drift rate is constant over the recording. Real
+oscillators also drift with temperature, so in a climate with strong daily
+cycles the estimate is an average over the cycle. A natural extension fits a
+separate rate for each temperature band; we leave this to future work.
+
+A second assumption is that events are shared. Sensors in very different
+places, such as one inside a building and one on a roof, see different
+events, and their lag estimates are noise. In practice we drop pairs whose
+correlation peak is weak. This leaves a sparser graph, but a more reliable
+one.
+
+\section{Conclusion}
+
+Clock drift is a quiet source of error in low-cost sensor networks. We
+showed that it can be estimated from the readings themselves, without extra
+hardware, to within a fraction of a second per day. The method is simple
+enough to run on a laptop for a network of a few hundred sensors.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Proof of Theorem~\ref{thm:var}}\label{app:var}
+
+The estimate of $b_i - b_j$ is the slope of a least-squares line through $n$
+points whose abscissas are spread evenly over a time $T$. Its variance is
+$\sigma^2$ divided by the sum of squared deviations of the abscissas, which
+is at least $n T^2 / 12$. This gives the bound.
+
+\end{document}
