@@ -1,24 +1,25 @@
 ---
 name: build-voice-skill
-description: Build a personal skill that revises the user's drafts in their own voice, from samples of their own writing (LaTeX, Markdown, plain text or Word). Use when the user wants Claude to learn their writing style from their papers or documents, to create or update a skill that edits their drafts without making them sound AI-written, or to install such a skill in Claude Code or claude.ai.
+description: Build a personal skill that revises the user's drafts in their own voice, from samples of their own writing (LaTeX, Markdown, plain text or Word). Use when the user wants the assistant to learn their writing style from their papers or documents, to create or update a skill that edits their drafts without making them sound AI-written, or to install such a skill in Claude Code, Codex or claude.ai.
 ---
 
 # Build a voice-preserving revision skill
 
 This skill turns a person's own writing samples into a private skill, `<name>/`, that revises their
-future drafts as a minimal-edit copy editor and reviewer. The built skill keeps Claude's words out of
-the draft: it finds problems, makes the smallest fix, and a guard script reverts any edit that adds AI
+future drafts as a minimal-edit copy editor and reviewer. The built skill keeps the assistant's words out
+of the draft: it finds problems, makes the smallest fix, and a guard script reverts any edit that adds AI
 tells or changes math, numbers, citations or theorem statements. Everything is judged against a measured
 profile of the author's own writing, so their habits are protected and only their slips get fixed.
 
 Steps 3, 4, 6, 7 and 8 run scripts. Steps 4 and 5 also need careful reading of the samples, which is the
-part only Claude can do.
+part no script can do.
 
 ## Paths
 
 - `SKILL_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
-  folder when the skill loads (a text substitution, not an environment variable); in claude.ai, use the
-  folder this SKILL.md was loaded from.
+  folder when the skill loads (a text substitution, not an environment variable). Codex and claude.ai do
+  not: there, use the folder this SKILL.md was loaded from, and write it in place of `${CLAUDE_SKILL_DIR}`
+  in the commands below.
 - `ENGINE` is `SKILL_DIR/template/scripts`.
 - `WORK` is a working folder outside any git repository, by default `~/voice-skill-work`, so nothing
   private gets committed by accident.
@@ -116,6 +117,9 @@ Every FAIL must be fixed before installing; WARN lines need a judgment call:
   `~/.claude/skills/NAME/` (add `--scope project` for `./.claude/skills/`). To replace an installed version,
   add `--force`; the old copy goes to `~/.claude/skill-backups/`. Then `/skills` should list it, and
   `/NAME` followed by what to revise runs it.
+- **Codex**: the same command with `--agent codex` copies it to `~/.agents/skills/NAME/` (`--scope project`
+  gives `./.agents/skills/`), with the same `--force` and backup behaviour. Then `/skills` should list it
+  (restart Codex if it does not), and `$NAME` followed by what to revise runs it.
 - **claude.ai**: `python3 "$SKILL_DIR/scripts/package_skill.py" "$WORK/build/NAME" -o "$WORK/dist"` writes
   `NAME.zip` (folder `NAME/` at the top, as claude.ai requires). The user uploads it under Customize >
   Skills and turns it on. If you can hand files to the user in the chat, pass `--ext skill` and send the
@@ -130,7 +134,8 @@ With a subagent tool, give a fresh subagent only the installed skill's path, one
 and a request such as "Lint this section and fix grammar only; don't change content", and read the guard
 report it produces. Many WARN items on harmless edits mean a rule is too strict for this author: add the
 word or opener to `allow` in `config.json`, or a missed slip to the watchlist, then rebuild and reinstall
-with `--force`. Without a subagent tool, skip this step and suggest the user try `/NAME` on a short section.
+with `--force`. Without a subagent tool, skip this step and suggest the user try the skill on a short
+section (`/NAME` in Claude Code, `$NAME` in Codex).
 
 ## Updating the skill
 

@@ -102,6 +102,23 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(skills, ["demo-voice"])
         self.assertEqual(len(list((home / ".claude" / "skill-backups").iterdir())), 1)
 
+    def test_install_for_codex(self):
+        home = self.work / "codex-home"
+        env = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+        r = run(BUILDER / "install_skill.py", self.out, "--agent", "codex", env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((home / ".agents" / "skills" / "demo-voice" / "SKILL.md").exists())
+        self.assertFalse((home / ".claude").exists())
+        self.assertIn("$demo-voice", r.stdout)
+        r = run(BUILDER / "install_skill.py", self.out, "--agent", "codex", "--force", env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(list((home / ".agents" / "skill-backups").iterdir())), 1)
+        project = self.work / "codex-project"
+        project.mkdir()
+        r = run(BUILDER / "install_skill.py", self.out, "--agent", "codex", "--scope", "project", cwd=project)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((project / ".agents" / "skills" / "demo-voice" / "SKILL.md").exists())
+
     def test_install_dest_backup_stays_beside_dest(self):
         dest = self.work / "elsewhere" / "skills"
         r = run(BUILDER / "install_skill.py", self.out, "--dest", dest)
