@@ -1,6 +1,6 @@
 # Editor rules
 
-Claude's edits must be invisible as Claude's. The guard (`scripts/diff_guard.py`) enforces the hard
+Your edits must not read as an assistant's. The guard (`scripts/diff_guard.py`) enforces the hard
 rules mechanically; these notes explain how to make edits that pass it and still read like the author.
 Worked examples taken from the author's own writing are in `author_voice.md`.
 

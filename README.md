@@ -12,8 +12,9 @@ summary sentence at the end of every paragraph. Reviewers notice, and a "humaniz
 not bring your voice back.
 
 This project takes the other route. Give it a few things you wrote yourself, and it builds a **private
-Claude skill that edits like a copy editor, never a ghostwriter**. It makes the smallest change that fixes
-each problem, and a guard script throws out any edit that doesn't sound like you.
+skill that edits like a copy editor, never a ghostwriter**, for Claude Code, claude.ai or Codex. It makes
+the smallest change that fixes each problem, and a guard script throws out any edit that doesn't sound
+like you.
 
 ## What it looks like
 
@@ -77,6 +78,22 @@ your own text and installs it in `~/.claude/skills/<name>/`.
 <sub>On Claude Code older than 2.1.275, run `/plugin marketplace add JihuLee/editor-not-ghostwriter`
 first, then `/plugin install voice-skill-builder@editor-not-ghostwriter`.</sub>
 
+### Codex
+
+```
+codex plugin marketplace add JihuLee/editor-not-ghostwriter
+```
+
+```
+codex plugin add voice-skill-builder@editor-not-ghostwriter
+```
+
+Then ask Codex to build your voice skill from your files (or type `$` and pick `build-voice-skill`). The
+skill it builds goes in `~/.agents/skills/<name>/`.
+
+<sub>Without the plugin, copying `plugins/voice-skill-builder/skills/build-voice-skill/` into
+`~/.agents/skills/` works too.</sub>
+
 ### claude.ai
 
 1. Download `build-voice-skill.zip` from the
@@ -95,7 +112,7 @@ Prefer plain scripts? See [docs/usage.md](docs/usage.md#scripts-only).
 /my-voice Just lint draft.tex and tell me which paragraphs read least like me. Don't edit.
 ```
 
-You get `merged.tex` (your draft plus the accepted edits), `guard.md` (what was kept, what was reverted
+In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits), `guard.md` (what was kept, what was reverted
 and why), and a short list of what is left for you.
 
 ## Good to know

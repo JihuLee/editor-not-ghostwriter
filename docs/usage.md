@@ -15,7 +15,7 @@ your samples (.tex .md .txt .docx)
    │
    ▼
 build_skill.py ──► <name>/  (your private skill)  ──► validate_skill.py (self-tests on your own text)
-                                                   ──► install_skill.py (Claude Code) / package_skill.py (claude.ai)
+                                                   ──► install_skill.py (Claude Code, Codex) / package_skill.py (claude.ai)
 
 Using <name> on a draft:
   lint (AI tells, your slips, drift from your baseline)
@@ -42,7 +42,7 @@ python3 $BUILDER/find_slips.py ~/papers/*.tex -o $WORK/slip_candidates.md
 python3 $BUILDER/build_skill.py --name my-voice --profile $WORK/profile.json \
     --notes $WORK/voice_notes.md --watchlist $WORK/watchlist.json --out $WORK/build/my-voice
 python3 $BUILDER/validate_skill.py $WORK/build/my-voice --samples ~/papers/*.tex
-python3 $BUILDER/install_skill.py $WORK/build/my-voice
+python3 $BUILDER/install_skill.py $WORK/build/my-voice     # add --agent codex for Codex
 ```
 
 The voice notes are the one step that needs reading rather than counting; without Claude, write them

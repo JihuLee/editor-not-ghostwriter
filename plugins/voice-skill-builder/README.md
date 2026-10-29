@@ -11,6 +11,7 @@ Install it with
 /plugin install voice-skill-builder --marketplace JihuLee/editor-not-ghostwriter
 ```
 
-and run it with `/voice-skill-builder:build-voice-skill` followed by the paths of your samples. It needs
-only Python 3.9+. See the [repository README](https://github.com/JihuLee/editor-not-ghostwriter#readme)
+and run it with `/voice-skill-builder:build-voice-skill` followed by the paths of your samples. Codex reads
+the same plugin: `codex plugin marketplace add JihuLee/editor-not-ghostwriter`, then
+`codex plugin add voice-skill-builder@editor-not-ghostwriter`. It needs only Python 3.9+. See the [repository README](https://github.com/JihuLee/editor-not-ghostwriter#readme)
 for older Claude Code versions, the claude.ai route and privacy notes.

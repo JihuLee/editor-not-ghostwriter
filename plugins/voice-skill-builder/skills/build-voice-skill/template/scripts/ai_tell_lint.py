@@ -7,7 +7,7 @@ usage:
 Reports (1) hard tells with line numbers, (2) the author's recurring slips, (3) the
 paragraphs that read least like the author, ranked, and (4) document-level drift from
 the baseline. It never edits anything. Paragraphs it ranks high are candidates for the
-AUTHOR to rewrite; they are not an invitation for Claude to rewrite them.
+AUTHOR to rewrite; they are not an invitation for the assistant to rewrite them.
 """
 from __future__ import annotations
 

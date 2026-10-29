@@ -7,9 +7,9 @@ description: Revise the user's own drafts (LaTeX, Markdown or plain text) as a m
 
 The finished text has to read as {{author}} wrote it. Reviewers notice LLM prose (the
 vocabulary, the dashes, the tidy summary sentences, the even rhythm), and so do detectors.
-The most reliable way to avoid both is not to "humanize" Claude's text afterwards but to
-keep Claude's text out of the draft: Claude finds problems and makes the smallest edit
-that fixes each one. Every word Claude does not write is a word that cannot sound like Claude.
+The most reliable way to avoid both is not to "humanize" LLM text afterwards but to
+keep LLM text out of the draft: you find problems and make the smallest edit that fixes
+each one. Every word you do not write is a word that cannot sound like an LLM.
 
 Work as a copy editor and a reviewer, never as a ghostwriter.
 
@@ -28,8 +28,9 @@ This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} ow
 ## Paths and working folder
 
 - `SKILL_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
-  folder when the skill loads (a text substitution, not an environment variable); in claude.ai, use the
-  folder this SKILL.md was loaded from. `PROFILE` is `SKILL_DIR/references/author_profile.json`.
+  folder when the skill loads (a text substitution, not an environment variable). Codex and claude.ai do
+  not: there, use the folder this SKILL.md was loaded from, and write it in place of `${CLAUDE_SKILL_DIR}`
+  in the commands below. `PROFILE` is `SKILL_DIR/references/author_profile.json`.
 - `RUN` is a scratch folder for this revision, outside the user's repository, for example
   `~/voice-skill-work/runs/<draft-name>/`. Every file this workflow writes (lint.md, issues.md, edited
   copies, guard.md, merged files) goes there; never modify the user's original files.
@@ -55,9 +56,9 @@ short question if it is not already clear: what to work on (the whole draft, som
 reviewer comments) and the venue. If nobody is there to answer, default to: grammar and clarity fixes on
 all prose, no content changes.
 
-"Must not read as AI-written" means two things, in this order: Claude's own edits must add no AI tells
+"Must not read as AI-written" means two things, in this order: your own edits must add no AI tells
 (always), and passages that already read as AI text are reported to the author with the reasons (step 1).
-Claude edits those only when the author explicitly asks, and then removes the specific tells with minimal
+Edit those only when the author explicitly asks, and then remove the specific tells with minimal
 edits instead of rewriting.
 
 If the draft is one of the profile's own samples (the lint and the guard print a warning), build a
@@ -150,7 +151,7 @@ Give the author:
    where it is; copy it over the original only if they ask.
 2. A change list: `latexdiff draft.tex merged.tex > diff.tex` when latexdiff is installed, `git diff
    --word-diff` when the draft is in git, otherwise the "Kept" sections of `guard.md`.
-3. What Claude did not fix: content issues from the review, flagged edits that need the author, and
+3. What you did not fix: content issues from the review, flagged edits that need the author, and
    passages the lint suggests they rewrite themselves.
 
 Stop after two rounds. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
@@ -160,7 +161,7 @@ when subagents are available. Further rounds mostly trade the author's voice for
 
 Map each comment to locations and sort it: (a) text fix, (b) needs new content (an experiment, an argument,
 a paragraph), (c) answered in the response letter only. Handle (a) with steps 4 and 5. For (b), draft new
-text only when the author asks; mark every Claude-drafted passage in the report so the author can rewrite it
+text only when the author asks; mark every passage you drafted in the report so the author can rewrite it
 in their own words or disclose it, and run the guard with `--allow-new-sentences` so those additions are
 listed instead of reverted. For (c), give the author a point-by-point outline rather than finished prose.
 
@@ -168,5 +169,5 @@ listed instead of reverted. For (c), give the author a point-by-point outline ra
 
 Publishers treat editing an author's own text differently from adding AI-generated text, and policies
 differ. IEEE, for example, requires AI-generated text to be disclosed in the acknowledgments and only
-recommends disclosure for editing and grammar help. When Claude drafts new passages, say so in the report
+recommends disclosure for editing and grammar help. When you draft new passages, say so in the report
 so the author can decide, and point them to their venue's policy.

@@ -21,6 +21,7 @@ Offer the default first. Skip any question the conversation already answered.
      `latex.unfrozen_envs` in `config.json`. Theorem statements stay frozen either way.
 
 4. **Where to install.** "Where will you use the skill?"
-   - Default in Claude Code: the personal skills folder (`~/.claude/skills/`).
-   - Other options: this project's `.claude/skills/` (do not commit it if the repository is public),
-     or a .zip for claude.ai.
+   - Default in Claude Code: the personal skills folder (`~/.claude/skills/`); in Codex:
+     `~/.agents/skills/`.
+   - Other options: this project's `.claude/skills/` or `.agents/skills/` (do not commit it if the
+     repository is public), or a .zip for claude.ai.
