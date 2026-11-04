@@ -1,0 +1,56 @@
+name: release
+
+# Publishes v<version> with build-voice-skill.zip attached, <version> being the one in plugin.json.
+# Run it from the Actions tab on main ("Run workflow"), or push a matching tag (git push origin v0.3.0).
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Read and check the version
+        id: version
+        run: |
+          version=$(python -c "import json; print(json.load(open('plugins/voice-skill-builder/.claude-plugin/plugin.json'))['version'])")
+          builder=$(python -c "import re; print(re.search(r'^BUILDER_VERSION = \"(.+)\"', open('plugins/voice-skill-builder/skills/build-voice-skill/scripts/build_skill.py').read(), re.M).group(1))")
+          if [ "$version" != "$builder" ]; then
+            echo "::error::plugin.json says $version but BUILDER_VERSION says $builder; bump both"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match plugin.json version $version"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = branch ] && [ "$GITHUB_REF_NAME" != main ]; then
+            echo "::error::run this workflow on main, not $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      - name: Unit and end-to-end tests
+        run: python -m unittest discover -s tests -v
+      - name: Package the builder for claude.ai
+        run: python tools/make_release.py
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/build-voice-skill.zip --clobber
+          else
+            gh release create "$TAG" dist/build-voice-skill.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi

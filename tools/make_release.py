@@ -3,8 +3,9 @@
 
 usage: python tools/make_release.py [-o dist]
 
-Attach the zip to a GitHub release so claude.ai users can download it and upload it under
-Customize > Skills. Claude Code users install the plugin instead (see README).
+claude.ai users download it from a GitHub release and upload it under Customize > Skills. The release
+workflow (.github/workflows/release.yml) runs this script and attaches the zip; run it by hand to check
+the package.
 """
 import argparse
 import sys
