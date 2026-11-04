@@ -160,5 +160,27 @@ class TestDemoCorpus(unittest.TestCase):
             self.assertEqual(doc.diagnostics.get("artifacts"), [], path.name)
 
 
+class TestCollectSources(unittest.TestCase):
+    def test_folder_expands_and_skips(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in ["a/main.tex", "a/sections/intro.tex", "b/main.tex", "b/notes.md",
+                        ".git/x.md", "a/__pycache__/y.txt", "a/~$draft.docx", "a/refs.bib"]:
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text("We write.\n", encoding="utf-8")
+            found = prose.collect_sources([root, root / "b" / "notes.md"])
+            rels = [f.relative_to(root).as_posix() for f in found]
+            self.assertEqual(rels, ["a/main.tex", "a/sections/intro.tex", "b/main.tex", "b/notes.md"])
+            labels = prose.source_labels(found)
+            self.assertEqual(sorted(labels.values()), rels)
+            self.assertEqual(list(prose.source_labels([root / "b" / "notes.md"]).values()), ["notes.md"])
+
+    def test_empty_folder_is_an_error(self):
+        with TemporaryDirectory() as tmp:
+            (Path(tmp) / "refs.bib").write_text("@misc{a}\n", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                prose.collect_sources([tmp])
+
+
 if __name__ == "__main__":
     unittest.main()

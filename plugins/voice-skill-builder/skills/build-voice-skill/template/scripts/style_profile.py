@@ -4,6 +4,10 @@
 usage:
   python style_profile.py sample1.tex sample2.md notes.docx -o author_profile.json \\
       [--md author_stats.md] [--check] [--no-appendix] [--min-words 3000]
+  python style_profile.py ~/papers/ --list
+
+A folder stands for every .tex .md .txt .docx file inside it, subfolders included (hidden
+ones skipped); --list prints those files with their word counts and stops.
 
 Use text the author drafted on their own: not co-authors' sections, not text that an
 LLM already polished. The profile is the baseline that ai_tell_lint.py and diff_guard.py
@@ -41,6 +45,8 @@ def _non_english_share(text: str) -> float:
 
 
 def build_profile(paths, include_appendix=True, min_words=3000, config=None):
+    paths = prose.collect_sources(paths)
+    labels = prose.source_labels(paths)
     docs = []
     for p in paths:
         path = Path(p)
@@ -101,7 +107,7 @@ def build_profile(paths, include_appendix=True, min_words=3000, config=None):
     sources, diagnostics, declared, macros = [], {}, set(), set()
     for path, d in docs:
         ws = d.words(include_appendix)
-        sources.append({"file": path.name, "format": d.fmt,
+        sources.append({"file": labels[path], "format": d.fmt,
                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest()[:16],
                         "words": len(ws), "sentences": len(d.sentences(include_appendix)),
                         "paragraphs": len(d.paragraphs)})
@@ -109,7 +115,7 @@ def build_profile(paths, include_appendix=True, min_words=3000, config=None):
         declared |= set(diag.pop("theorem_envs_declared", []))
         macros |= set(diag.pop("macros_expanded", []))
         diag.pop("frozen_envs", None)
-        diagnostics[path.name] = diag
+        diagnostics[labels[path]] = diag
 
     def rates(c):
         return {k: _r(tl.rate(v, n_words)) for k, v in sorted(c.items(), key=lambda kv: -kv[1])}
@@ -247,17 +253,32 @@ def print_check(pr: dict):
         print("No extraction problems found.")
 
 
+def print_list(samples, include_appendix=True, config=None):
+    paths = prose.collect_sources(samples)
+    labels = prose.source_labels(paths)
+    total = 0
+    for p in paths:
+        n = len(prose.extract(p, config=config).words(include_appendix))
+        total += n
+        print(f"{n:>8,}  {labels[p]}")
+    print(f"{total:>8,}  words of prose in {len(paths)} file(s)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("samples", nargs="+", help="files the author wrote (.tex .md .txt .docx)")
+    ap.add_argument("samples", nargs="+", help="files the author wrote (.tex .md .txt .docx), or folders of them")
     ap.add_argument("-o", "--out", default="author_profile.json")
     ap.add_argument("--md", help="also write a readable summary (markdown)")
     ap.add_argument("--check", action="store_true", help="print extraction diagnostics per file")
     ap.add_argument("--no-appendix", action="store_true", help="ignore appendix text")
     ap.add_argument("--min-words", type=int, default=3000)
+    ap.add_argument("--list", action="store_true", help="print the files that would be read, with word counts, and stop")
     ap.add_argument("--config", help="config.json: {'latex': {'frozen_envs_extra', 'unfrozen_envs', 'macros'}}")
     a = ap.parse_args()
     config = json.loads(Path(a.config).read_text(encoding="utf-8")) if a.config else None
+    if a.list:
+        print_list(a.samples, include_appendix=not a.no_appendix, config=config)
+        return
     pr = build_profile(a.samples, include_appendix=not a.no_appendix, min_words=a.min_words, config=config)
     Path(a.out).write_text(json.dumps(pr, indent=1, ensure_ascii=False), encoding="utf-8")
     print(f"profile: {a.out}  ({pr['n_words']:,} words, {pr['n_sentences']} sentences)")

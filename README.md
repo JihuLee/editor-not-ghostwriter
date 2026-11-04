@@ -59,9 +59,11 @@ The reasoning and sources are in [docs/design.md](docs/design.md).
 
 ## Quick start
 
-You need about 3,000 words or more of your own writing (`.tex`, `.md`, `.txt` or `.docx`) and Python 3.9+.
+You need about 3,000 words or more of your own writing (`.tex`, `.md`, `.txt` or `.docx`).
 
-**1. Install the builder** (the installer needs Node.js 22.20+)
+### Claude Code or Codex
+
+**1. Install the builder** (needs Python 3.9+; the installer needs Node.js 22.20+)
 
 ```bash
 npx skills add JihuLee/editor-not-ghostwriter -g
@@ -69,18 +71,24 @@ npx skills add JihuLee/editor-not-ghostwriter -g
 
 Choose Claude Code, Codex or both when it asks which agents to install to.
 
-**2. Point it at your writing**
+**2. Point it at your writing**, a folder or single files:
 
 ```
-/build-voice-skill  ~/papers/2024-icml.tex ~/papers/2025-journal.tex ~/notes/blog/*.md
+/build-voice-skill  ~/papers/  ~/notes/blog/2025-sensors.md
 ```
 
-In Codex, type `$build-voice-skill` with the same paths, or just ask it to build your voice skill from
-those files. It asks a few questions, measures your style, finds your recurring slips, builds the skill,
-tests it on your own text and installs it next to the builder (`~/.claude/skills/<name>/` or
+A folder counts every `.tex`, `.md`, `.txt` and `.docx` file inside it, subfolders included; the builder
+shows you the list first so you can leave out anything you didn't write yourself. In Codex, type
+`$build-voice-skill` with the same paths, or just ask it to build your voice skill from them.
+
+It asks a few questions, measures your style, finds your recurring slips, builds the skill, tests it on
+your own text and installs it next to the builder (`~/.claude/skills/<name>/` or
 `~/.agents/skills/<name>/`).
 
-### claude.ai
+### Chat users (claude.ai)
+
+For people who use Claude in the browser or the desktop app's chat rather than Claude Code. Nothing to
+install on your computer: the scripts run in claude.ai's own sandbox.
 
 1. Download `build-voice-skill.zip` from the
    [latest release](https://github.com/JihuLee/editor-not-ghostwriter/releases/latest).
