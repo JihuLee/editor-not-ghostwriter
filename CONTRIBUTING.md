@@ -9,3 +9,14 @@
   or explain the false positives a removal fixes.
 - New guard rules need a test that shows a planted edit being reverted or kept, as in
   `tests/test_guard_lint.py`.
+
+## Releasing
+
+1. Bump the version to the same number in `plugins/voice-skill-builder/.claude-plugin/plugin.json` and in
+   `BUILDER_VERSION` (`scripts/build_skill.py`), and merge that to `main`.
+2. In the repository's **Actions** tab, open **release** and click **Run workflow** on `main`. Pushing a
+   tag such as `v0.3.0` does the same.
+
+The workflow checks that the two version numbers and the tag agree, runs the tests, builds
+`build-voice-skill.zip` and publishes release `v<version>` with generated notes and the zip attached. If
+that release already exists, it only replaces the zip.
