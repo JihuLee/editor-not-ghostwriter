@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from _paths import BUILDER, DEMO, ENGINE, SAMPLES
 import build_skill
 import find_slips
+import style_profile
 
 PY = sys.executable
 INPUTS = DEMO / "build-inputs"
@@ -34,6 +35,26 @@ class TestFindSlips(unittest.TestCase):
         self.assertEqual(len(found["allow/enable/permit to + verb"]["hits"]), 4)
         self.assertEqual(len(found["despite of"]["hits"]), 2)
         self.assertEqual(len(found["less + countable plural"]["hits"]), 2)
+
+    def test_folder_gives_the_same_hits(self):
+        by_file = find_slips.scan(SAMPLES)
+        by_folder = find_slips.scan([DEMO / "samples"])
+        self.assertEqual({k: len(v["hits"]) for k, v in by_file.items()},
+                         {k: len(v["hits"]) for k, v in by_folder.items()})
+
+
+class TestFolderSamples(unittest.TestCase):
+    def test_folder_profile_equals_file_profile(self):
+        by_file = style_profile.build_profile(SAMPLES)
+        by_folder = style_profile.build_profile([DEMO / "samples"])
+        self.assertEqual(by_file, by_folder)
+
+    def test_list_prints_files_and_total(self):
+        r = run(ENGINE / "style_profile.py", DEMO / "samples", "--list")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for p in SAMPLES:
+            self.assertIn(p.name, r.stdout)
+        self.assertIn("words of prose in 3 file(s)", r.stdout)
 
 
 class TestEndToEnd(unittest.TestCase):

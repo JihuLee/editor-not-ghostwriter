@@ -4,6 +4,8 @@
 usage:
   python validate_skill.py work/build/alex-voice [--samples s1.tex s2.md ...] [--json report.json]
 
+--samples takes files or folders, read as in style_profile.py.
+
 Structure: frontmatter rules (name = folder, kebab-case, at most 64 characters, no reserved
 words; description at most 1,024 characters, no angle brackets), referenced files exist,
 no unfilled placeholders, scripts compile, the profile and watchlist load.
@@ -146,16 +148,17 @@ def run_self_tests(skill: Path, pr: dict, samples, rep: Report):
     rules = tl.Rules(pr)
     wl_counts = {(e.get("label") or e["match"]): 0 for e in pr.get("watchlist", [])}
     draftable = []
-    for s in samples:
-        path = Path(s)
+    samples = prose.collect_sources(samples)
+    labels = prose.source_labels(samples)
+    for path in samples:
         doc = prose.extract(path, config=config)
         arts = doc.diagnostics.get("artifacts") or []
-        rep.add(f"extraction: {path.name}", not arts,
+        rep.add(f"extraction: {labels[path]}", not arts,
                 f"{len(doc.words()):,} words; markup left in {len(arts)} sentence(s), e.g. line {arts[0][0]}" if arts
                 else f"{len(doc.words()):,} words", level="warn")
         res = ai_tell_lint.lint(path, pr)
         hard = res["hard"]
-        rep.add(f"lint finds no hard tells in own sample: {path.name}", not hard,
+        rep.add(f"lint finds no hard tells in own sample: {labels[path]}", not hard,
                 "; ".join(f"l.{h['line']} {h['what']}" for h in hard[:5]), level="warn")
         for rx, _, label in rules.watchlist:
             wl_counts[label] += sum(len(rx.findall(x.text)) for x in doc.sentences())
@@ -259,7 +262,7 @@ def run_self_tests(skill: Path, pr: dict, samples, rep: Report):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("skill_dir")
-    ap.add_argument("--samples", nargs="*", default=[], help="the author's samples, for self-tests")
+    ap.add_argument("--samples", nargs="*", default=[], help="the author's samples (files or folders), for self-tests")
     ap.add_argument("--json", help="write the results here")
     a = ap.parse_args()
     skill = Path(a.skill_dir).resolve()

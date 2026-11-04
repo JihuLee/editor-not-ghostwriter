@@ -6,6 +6,8 @@ Offer the default first. Skip any question the conversation already answered.
 1. **Samples.** "Which files did you write yourself? Leave out sections a co-author wrote and anything you
    polished with an AI tool, since the samples become the baseline your future drafts are compared with."
    - Default: the files the user already shared, all treated as self-written.
+   - If the user named a folder, show the `style_profile.py FOLDER --list` output (step 2 of SKILL.md)
+     with this question, so they can drop the files they did not write alone.
    - If a file is co-authored, ask which sections are theirs and keep only those (copy them into a new
      file in `WORK/samples/`).
 

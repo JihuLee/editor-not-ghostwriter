@@ -4,6 +4,8 @@
 usage:
   python find_slips.py sample1.tex sample2.md ... [-o slip_candidates.md] [--min-count 1]
 
+Samples may be folders, read as in style_profile.py.
+
 The patterns (esl_candidates.py) are generic and over-match on purpose. Read every hit
 in context and keep only slips that are real and recur; those go into watchlist.json.
 """
@@ -31,14 +33,16 @@ def _context(text: str, start: int, end: int, width: int = 55) -> str:
 
 def scan(paths):
     found = {label: {"fix": fix, "hits": []} for label, _, fix, _ in COMPILED}
+    paths = prose.collect_sources(paths)
+    labels = prose.source_labels(paths)
     for path in paths:
-        doc = prose.extract(Path(path))
+        doc = prose.extract(path)
         for s in doc.sentences():
             for label, rx, _, ex in COMPILED:
                 for m in rx.finditer(s.text):
                     if ex and ex.search(s.text[:m.start()]):
                         continue
-                    found[label]["hits"].append({"file": Path(path).name, "line": s.line_of(m.start()),
+                    found[label]["hits"].append({"file": labels[path], "line": s.line_of(m.start()),
                                                  "match": m.group(0),
                                                  "context": _context(s.text, m.start(), m.end())})
     return found
@@ -63,7 +67,7 @@ def to_markdown(found, min_count=1) -> str:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("samples", nargs="+")
+    ap.add_argument("samples", nargs="+", help="the author's files, or folders of them")
     ap.add_argument("-o", "--out", help="write markdown here (default: stdout)")
     ap.add_argument("--min-count", type=int, default=1)
     a = ap.parse_args()

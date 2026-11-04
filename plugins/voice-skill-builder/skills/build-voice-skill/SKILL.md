@@ -45,6 +45,18 @@ themselves: drop sections a co-author wrote and text an LLM already polished, be
 samples becomes the baseline. Finished pieces are better than rough drafts. Copy nothing into the
 repository the user is working in.
 
+The user may name folders instead of files. Every script that takes samples reads a folder as all the
+supported files inside it, subfolders included (hidden folders, `.bib` and `.sty` files are skipped). A
+folder can hold more than the user means (a co-author's section, a README, an old LLM-polished draft),
+so list what it contains before measuring:
+
+```
+python3 "$ENGINE/style_profile.py" FOLDER --list
+```
+
+Show the user the list with its word counts in the interview (question 1). If they drop some files,
+pass the remaining files by name instead of the folder in the steps below.
+
 Size: the scripts refuse fewer than 3,000 words of prose; 8,000+ words gives steadier numbers, 10,000+ is
 better. You only learn the prose word count in step 3, so if it comes out under 8,000, tell the user once
 and ask whether they have more of their own writing to add. If they don't, or nobody is there to ask,
@@ -55,6 +67,8 @@ continue and mention the thin baseline in your final message.
 ```
 python3 "$ENGINE/style_profile.py" SAMPLE1 SAMPLE2 ... -o "$WORK/profile.json" --md "$WORK/stats.md" --check
 ```
+
+`SAMPLE1 SAMPLE2 ...` here and below are the files or folders settled in step 2.
 
 Read the `--check` output before going on:
 - "markup left in a sentence": the extractor missed an environment or macro. If it is an environment that
