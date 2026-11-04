@@ -59,40 +59,26 @@ The reasoning and sources are in [docs/design.md](docs/design.md).
 
 ## Quick start
 
-You need about 3,000 words or more of your own writing (`.tex`, `.md`, `.txt` or `.docx`) and nothing
-but Python 3.9+.
+You need about 3,000 words or more of your own writing (`.tex`, `.md`, `.txt` or `.docx`) and Python 3.9+.
 
-### Claude Code
+**1. Install the builder** (the installer needs Node.js 22.20+)
 
-```
-/plugin install voice-skill-builder --marketplace JihuLee/editor-not-ghostwriter
-```
-
-```
-/voice-skill-builder:build-voice-skill  ~/papers/2024-icml.tex ~/papers/2025-journal.tex ~/notes/blog/*.md
+```bash
+npx skills add JihuLee/editor-not-ghostwriter -g
 ```
 
-It asks a few questions, measures your style, finds your recurring slips, builds the skill, tests it on
-your own text and installs it in `~/.claude/skills/<name>/`.
+Choose Claude Code, Codex or both when it asks which agents to install to.
 
-<sub>On Claude Code older than 2.1.275, run `/plugin marketplace add JihuLee/editor-not-ghostwriter`
-first, then `/plugin install voice-skill-builder@editor-not-ghostwriter`.</sub>
-
-### Codex
+**2. Point it at your writing**
 
 ```
-codex plugin marketplace add JihuLee/editor-not-ghostwriter
+/build-voice-skill  ~/papers/2024-icml.tex ~/papers/2025-journal.tex ~/notes/blog/*.md
 ```
 
-```
-codex plugin add voice-skill-builder@editor-not-ghostwriter
-```
-
-Then ask Codex to build your voice skill from your files (or type `$` and pick `build-voice-skill`). The
-skill it builds goes in `~/.agents/skills/<name>/`.
-
-<sub>Without the plugin, copying `plugins/voice-skill-builder/skills/build-voice-skill/` into
-`~/.agents/skills/` works too.</sub>
+In Codex, type `$build-voice-skill` with the same paths, or just ask it to build your voice skill from
+those files. It asks a few questions, measures your style, finds your recurring slips, builds the skill,
+tests it on your own text and installs it next to the builder (`~/.claude/skills/<name>/` or
+`~/.agents/skills/<name>/`).
 
 ### claude.ai
 
@@ -102,7 +88,32 @@ skill it builds goes in `~/.agents/skills/<name>/`.
 3. In a chat, attach your papers and ask Claude to build your voice skill.
 4. Claude hands back `<name>.zip`; upload it the same way.
 
-Prefer plain scripts? See [docs/usage.md](docs/usage.md#scripts-only).
+<details>
+<summary><b>Other ways to install</b>: Claude Code or Codex plugin, plain scripts</summary>
+
+**Claude Code plugin**
+
+```
+/plugin install voice-skill-builder --marketplace JihuLee/editor-not-ghostwriter
+```
+
+Then start it with `/voice-skill-builder:build-voice-skill` followed by your files. On Claude Code older
+than 2.1.275, run `/plugin marketplace add JihuLee/editor-not-ghostwriter` first, then
+`/plugin install voice-skill-builder@editor-not-ghostwriter`.
+
+**Codex plugin**
+
+```
+codex plugin marketplace add JihuLee/editor-not-ghostwriter
+```
+
+```
+codex plugin add voice-skill-builder@editor-not-ghostwriter
+```
+
+**Plain scripts, no agent**: see [docs/usage.md](docs/usage.md#scripts-only).
+
+</details>
 
 ## Using your skill
 
@@ -112,8 +123,8 @@ Prefer plain scripts? See [docs/usage.md](docs/usage.md#scripts-only).
 /my-voice Just lint draft.tex and tell me which paragraphs read least like me. Don't edit.
 ```
 
-In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits), `guard.md` (what was kept, what was reverted
-and why), and a short list of what is left for you.
+In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits),
+`guard.md` (what was kept, what was reverted and why), and a short list of what is left for you.
 
 ## Good to know
 
