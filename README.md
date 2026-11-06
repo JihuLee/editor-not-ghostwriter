@@ -46,6 +46,11 @@ read least like the author.
 
 ## Why it works
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.png">
+  <img alt="Built once from your own writing: your papers are measured by style_profile.py into your profile. Every revision: your draft goes to Claude for the smallest fix, diff_guard.py judges each edit against your profile, kept edits go into merged.tex, and reverted ones are listed in guard.md." src="docs/how-it-works.png">
+</picture>
+
 - **It edits, it doesn't rewrite.** A word, then a phrase, then a clause; one sentence in, one sentence
   out. Every word Claude doesn't write is a word that can't sound like Claude.
 - **Your writing is the baseline.** It measures your sentence rhythm, punctuation, connectives and
