@@ -1,29 +1,24 @@
 ---
 name: {{name}}
-description: Revise the user's own drafts (LaTeX, Markdown or plain text) as a minimal-edit copy editor and reviewer, calibrated to {{author_possessive}} measured writing style, so the result still reads as their own writing and not as AI text. Use whenever the user wants to revise, polish, proofread, tighten, fix grammar in, or answer reviewer comments on a paper, manuscript or draft, or asks to make text sound less AI-generated or more like their own style, even if they do not mention voice or detection.
+description: Revise {{author_possessive}} own paper, manuscript or other long-form draft (a .tex, .md or .txt file) as a minimal-edit copy editor and reviewer, calibrated to their measured writing style, so the result still reads as their own writing and not as AI text. Use when the user wants to revise, proofread, tighten, fix grammar in, or answer reviewer comments on such a draft, or asks to make it sound less AI-generated or more like their own style. Not for Word or Google Docs files, emails, or other short texts.
 ---
 
 # Voice-preserving revision for {{author}}
 
-The finished text has to read as {{author}} wrote it. Reviewers notice LLM prose (the
-vocabulary, the dashes, the tidy summary sentences, the even rhythm), and so do detectors.
-The most reliable way to avoid both is not to "humanize" LLM text afterwards but to
-keep LLM text out of the draft: you find problems and make the smallest edit that fixes
-each one. Every word you do not write is a word that cannot sound like an LLM.
-
-Work as a copy editor and a reviewer, never as a ghostwriter.
+The finished text has to read as {{author}} wrote it, so keep your own words out of it: find
+problems and make the smallest edit that fixes each one. Every word you do not write is a word
+that cannot sound like an LLM. Work as a copy editor and a reviewer, never as a ghostwriter.
 
 This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} own samples ({{n_words}} words).
 
 ## Files in this skill
 
 - `references/author_profile.json` - the measured baseline, recurring slips and settings. Scripts read it.
-- `references/author_voice.md` - the author's habits in words, recurring slips, worked examples. Read before editing.
-- `references/editor_rules.md` - how to edit minimally, and what the guard rejects. Read before editing.
+- `references/author_voice.md` - the author's habits, connectives, recurring slips and worked examples. Read before editing.
 - `references/reviewer_prompt.md` - prompt for the review pass.
-- `references/ai_tells.md` - what counts as an AI tell and why. `scripts/lexicon_en.py` holds the lists.
 - `references/author_stats.md` - generated numbers behind the profile.
 - `scripts/ai_tell_lint.py`, `scripts/diff_guard.py`, `scripts/style_profile.py`, `scripts/detector_check.py`.
+  The tier-A and tier-B word lists are in `scripts/lexicon_en.py`; the lint and the guard name every hit.
 
 ## Paths and working folder
 
@@ -109,18 +104,24 @@ claims unchanged. A one-word fix that changes a claim or a stated quantity ("inc
 
 ### 4. Edit minimally
 
-Read `references/editor_rules.md` and `references/author_voice.md` first. Copy the draft to an edited copy
-in `RUN` (for example `$RUN/edited.tex`) and edit only there. The short version:
+Read `references/author_voice.md` first. Copy the draft to an edited copy in `RUN` (for example
+`$RUN/edited.tex`) and edit only there.
 
-- Change the smallest unit that fixes the problem: word, then phrase, then clause. Rewrite a sentence only
-  when it is broken, and then reuse the author's own words and stay near the original sentence's length.
-- One sentence in, one sentence out, except for splitting a run-on at an existing connective. Do not add
-  sentences, transitions, summaries or claims.
+- Climb only as far as the problem forces you: word (agreement, article, preposition, tense, a wrong term),
+  then phrase, then clause. Most fixes stop at a word.
+- Rewrite a sentence only when it cannot be parsed or says something false. Then keep the author's subject
+  and main verb, reuse the words of the sentence and its neighbours, stay near its length, and make it no
+  smoother than the sentences around it. Split a run-on of 35+ words at an existing connective instead of
+  compressing it.
+- One sentence in, one sentence out. Do not add sentences, transitions, summaries, claims, hedges or
+  intensifiers. Never edit at paragraph level: a paragraph that needs restructuring goes to the author with
+  a note on what is wrong.
 - {{layout_rule}}
 - Do not touch equations, inline math, theorem-like statements, proofs, code, numbers, citations, labels or
-  tables.{{frozen_note}}
-- Keep the author's connectives ({{author_connectives}}) and their use of "we".
-- Never introduce tier-A words, "not only ... but also"{{never_devices}}, or openers such as {{avoid_openers}}.{{dash_rule}}
+  tables.{{frozen_note}} If one of them is wrong, report it with its location.
+- Keep the author's connectives (listed in `author_voice.md`) and their use of "we".
+- Never introduce tier-A words ("delve", "pivotal", "seamless", ...), "not only ... but also"{{never_devices}}, or openers such as {{avoid_openers}}.{{dash_rule}}
+- Leave no notes or comments in the draft; notes for the author go in the report.
 
 ### 5. Guard: keep only voice-preserving edits
 
@@ -162,12 +163,6 @@ when subagents are available. Further rounds mostly trade the author's voice for
 Map each comment to locations and sort it: (a) text fix, (b) needs new content (an experiment, an argument,
 a paragraph), (c) answered in the response letter only. Handle (a) with steps 4 and 5. For (b), draft new
 text only when the author asks; mark every passage you drafted in the report so the author can rewrite it
-in their own words or disclose it, and run the guard with `--allow-new-sentences` so those additions are
-listed instead of reverted. For (c), give the author a point-by-point outline rather than finished prose.
-
-## Disclosure
-
-Publishers treat editing an author's own text differently from adding AI-generated text, and policies
-differ. IEEE, for example, requires AI-generated text to be disclosed in the acknowledgments and only
-recommends disclosure for editing and grammar help. When you draft new passages, say so in the report
-so the author can decide, and point them to their venue's policy.
+in their own words or disclose it under their venue's AI policy, and run the guard with
+`--allow-new-sentences` so those additions are listed instead of reverted. For (c), give the author a
+point-by-point outline rather than finished prose.

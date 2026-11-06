@@ -8,7 +8,7 @@ usage:
       --out work/build/alex-voice [--force]
 
 Produces <out>/SKILL.md, references/ (author_profile.json, author_voice.md, author_stats.md,
-editor_rules.md, reviewer_prompt.md, ai_tells.md) and scripts/. The folder name equals the
+reviewer_prompt.md) and scripts/. The folder name equals the
 skill name, as claude.ai and Claude Code require. Run validate_skill.py on the result next.
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ sys.path.insert(0, str(TEMPLATE / "scripts"))
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.3.0"
+BUILDER_VERSION = "0.4.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
@@ -99,18 +99,6 @@ def openers_to_avoid(pr, limit=8, config=None):
     return [o[0].upper() + o[1:] + "," for o in avoid[:limit]]
 
 
-def own_connectives(pr, limit=8):
-    conn = pr.get("connectives_per_100_sentences") or {}
-    out = []
-    for k, v in conn.items():
-        if tl.ai_opener(k + ",") or v < 0.3:
-            continue
-        out.append(k[0].upper() + k[1:])
-        if len(out) >= limit:
-            break
-    return out
-
-
 def frozen_note(pr, config) -> str:
     envs = set((pr.get("latex") or {}).get("theorem_envs_declared") or [])
     envs |= set(((config or {}).get("latex") or {}).get("frozen_envs_extra") or [])
@@ -139,7 +127,6 @@ def voice_auto(pr, watchlist, author, built, config=None) -> str:
     src = ", ".join(f"{s['file']} ({s['words']:,} words)" for s in pr["sources"])
     conn = pr.get("connectives_per_100_sentences") or {}
     top_conn = [f"\"{k[0].upper() + k[1:]}\" {_n(v)}" for k, v in list(conn.items())[:14]]
-    avoid = openers_to_avoid(pr, limit=12, config=config)
     merged = dict(pr)
     merged["config"] = config or {}
     rules = tl.Rules(merged)
@@ -180,9 +167,6 @@ def voice_auto(pr, watchlist, author, built, config=None) -> str:
         "",
         "**Most frequent sentence openers** (any two words, with counts): " + (", ".join(frequent) or "none")
         + ". Signposts that recur here but are missing from the connective list are still part of the voice.",
-        "",
-        "**AI-favoured openers the author (almost) never uses:** " + (", ".join(f"\"{o}\"" for o in avoid) or "none")
-        + ". Do not add them.",
         "",
         f"**Devices** (per 1,000 words): colons {_n(st.get('colon', 0))}, semicolons {_n(st.get('semicolon', 0))}, "
         f"parentheses {_n(st.get('parenthesis', 0))}, e.g./i.e. {_n(st.get('eg_ie', 0))}, em dashes {_n(dash_rate)}"
@@ -310,7 +294,6 @@ def build(args):
     (out / "references" / "author_voice.md").write_text(voice, encoding="utf-8")
 
     never, dash = device_rules(pr)
-    conn = own_connectives(pr)
     values = {
         "name": args.name,
         "author": author,
@@ -321,7 +304,6 @@ def build(args):
         "layout_rule": layout_rule(pr),
         "dash_rule": dash,
         "never_devices": (", " + ", ".join(never)) if never else "",
-        "author_connectives": _fmt_list(conn) if conn else "the connectives listed in `references/author_voice.md`",
         "avoid_openers": _fmt_list(openers_to_avoid(pr, config=config)),
         "frozen_note": frozen_note(pr, config),
     }

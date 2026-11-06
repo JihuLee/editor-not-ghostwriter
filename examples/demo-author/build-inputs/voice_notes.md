@@ -15,7 +15,6 @@ None found beyond the watchlist. The samples are consistent in agreement, articl
 
 ### Keep as is
 
-- "We stress that", "Put differently,", "In what follows,", "Concretely,", "In short," and "As a consequence," are deliberate and frequent.
 - Semicolons between clauses (about 8 per 1,000 words) are part of the rhythm; do not split them into separate sentences.
 - Short closing sentences such as "Any sensor that sees the same events at a stable lag will do."
 - "neighbouring" and "neighbours" (British spelling).

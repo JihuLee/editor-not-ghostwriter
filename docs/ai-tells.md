@@ -1,6 +1,8 @@
 # AI tells
 
-The lists live in `scripts/lexicon_en.py`; this file explains them. The author's own rates live in
+What the lint and the guard count as an AI tell, and why. The lists themselves live in
+[`lexicon_en.py`](../plugins/voice-skill-builder/skills/build-voice-skill/template/scripts/lexicon_en.py);
+keep this page in step with them. Each built skill stores the author's own rates in
 `author_profile.json`, and every rule below is applied relative to them.
 
 ## Why these signals
