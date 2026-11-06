@@ -151,6 +151,7 @@ In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus 
 - [docs/usage.md](docs/usage.md): how the pieces fit, the full guard rules, the demo author, repository
   layout
 - [docs/design.md](docs/design.md): why it works this way, with sources
+- [docs/ai-tells.md](docs/ai-tells.md): the words and devices the lint and the guard watch for
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License

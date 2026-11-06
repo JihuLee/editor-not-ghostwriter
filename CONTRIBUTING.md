@@ -6,7 +6,7 @@
   sandbox, where installing packages may not be possible.
 - Never add real people's writing (yours included) to `examples/` or `tests/`. Fixtures are synthetic.
 - Changes to the word lists in `lexicon_en.py` should cite evidence that the word marks LLM-edited text,
-  or explain the false positives a removal fixes.
+  or explain the false positives a removal fixes. Update `docs/ai-tells.md` to match.
 - New guard rules need a test that shows a planted edit being reverted or kept, as in
   `tests/test_guard_lint.py`.
 

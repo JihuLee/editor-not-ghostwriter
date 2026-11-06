@@ -78,8 +78,8 @@ class TestEndToEnd(unittest.TestCase):
 
     def test_layout(self):
         for rel in ["SKILL.md", "references/author_profile.json", "references/author_voice.md",
-                    "references/author_stats.md", "references/editor_rules.md", "references/reviewer_prompt.md",
-                    "references/ai_tells.md", "scripts/diff_guard.py", "scripts/ai_tell_lint.py"]:
+                    "references/author_stats.md", "references/reviewer_prompt.md",
+                    "scripts/diff_guard.py", "scripts/ai_tell_lint.py", "scripts/lexicon_en.py"]:
             self.assertTrue((self.out / rel).exists(), rel)
         text = (self.out / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(text.startswith("---\nname: demo-voice\n"))
