@@ -15,8 +15,8 @@ assumptions and main claims, and check each passage against that list, so that i
 in the text are caught.
 
 Lenses:
-- **math-notation**: a symbol used differently from its definition; undefined symbols; one symbol for two
-  things, or one concept under two names; a quantity that disagrees between text, equations and tables; a theorem statement that differs from its proof or its
+- **math-notation**: a symbol used differently from its definition; undefined symbols; a quantity that
+  disagrees between text, equations and tables; a theorem statement that differs from its proof or its
   restatement elsewhere; an assumption used but never stated.
 - **claims-evidence**: a statement stronger than what the theory or experiments show; a comparison missing
   the qualifier it needs (one dataset, one seed, one model size, one setting); a contribution claimed in the
@@ -24,9 +24,7 @@ Lenses:
   ask for.
 - **clarity-grammar**: a sentence a careful reader would misparse; grammar errors (subject-verb agreement,
   articles, prepositions, verb patterns); undefined acronyms; broken references; a transition that makes the
-  logic unclear; a term or measure used before it is defined, or defined again later; a conclusion stated
-  before the evidence for it; a table that carries settings or redundant statistics, or prose that repeats a
-  table's numbers instead of interpreting them.
+  logic unclear.
 
 Be lenient with introductions that simplify, forward references, and informal paraphrases of formal results.
 Do not report formatting or typesetting, matters of taste, or "consider adding" ideas unless the omission is
