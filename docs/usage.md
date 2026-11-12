@@ -49,6 +49,11 @@ python3 $BUILDER/install_skill.py $WORK/build/my-voice     # add --agent codex f
 Each script that takes samples accepts files, folders or both. A folder means every `.tex`, `.md`, `.txt`
 and `.docx` file inside it, subfolders included; hidden folders and Word lock files are skipped.
 
+Standing requests (lasting preferences such as "keep figure captions short") go in with
+`--requests requests.md` or `--add-request "..."`. To add one later without the samples, rebuild from the
+installed skill: `build_skill.py --from-skill ~/.claude/skills/my-voice --add-request "..." --out
+$WORK/build/my-voice --force`, then install it again.
+
 The voice notes are the one step that needs reading rather than counting; without Claude, write them
 yourself or build with `--allow-missing-notes`.
 

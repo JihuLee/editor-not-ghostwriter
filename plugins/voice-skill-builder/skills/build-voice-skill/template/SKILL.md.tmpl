@@ -14,7 +14,7 @@ This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} ow
 ## Files in this skill
 
 - `references/author_profile.json` - the measured baseline, recurring slips and settings. Scripts read it.
-- `references/author_voice.md` - the author's habits, connectives, recurring slips and worked examples. Read before editing.
+- `references/author_voice.md` - the author's habits, connectives, recurring slips, worked examples and standing requests. Read before editing.
 - `references/reviewer_prompt.md` - prompt for the review pass.
 - `references/author_stats.md` - generated numbers behind the profile.
 - `scripts/ai_tell_lint.py`, `scripts/diff_guard.py`, `scripts/style_profile.py`, `scripts/detector_check.py`.
@@ -159,6 +159,19 @@ Give the author:
 
 Stop after two rounds. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
 when subagents are available. Further rounds mostly trade the author's voice for a reviewer's taste.
+
+## Standing requests
+
+`author_voice.md` may end with the author's standing requests, lasting preferences such as "keep figure
+captions short". Follow them in every run. They change what you look for and suggest, never what the guard
+allows. A request that needs content moved, cut or written (a detail moved to an appendix, a caption
+shortened) goes in the report as a proposed change when the run is limited to grammar and clarity. Apply it
+only when the author asks, after the guard, as a separate pass on the merged file with its own diff, and
+check that every moved value appears unchanged at its new place. No request overrides frozen content or
+the rules in step 4.
+
+When the author states a new lasting preference ("from now on, always ..."), keep to it for the rest of the
+session and tell them it can be added to this skill for good with the build-voice-skill builder.
 
 ## Reviewer comments (journal or conference revision)
 

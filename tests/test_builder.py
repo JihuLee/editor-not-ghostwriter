@@ -156,6 +156,51 @@ class TestEndToEnd(unittest.TestCase):
                 "--notes", INPUTS / "voice_notes.md", "--config", bad, "--out", self.work / "build" / "cfg-voice")
         self.assertNotEqual(r.returncode, 0)
 
+    def test_standing_requests_and_rebuild_from_skill(self):
+        reqs = self.work / "requests.md"
+        reqs.write_text("- Keep figure captions short.\n", encoding="utf-8")
+        first = self.work / "build-req" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--name", "demo-voice", "--author", "the demo author",
+                "--profile", self.work / "profile.json", "--notes", INPUTS / "voice_notes.md",
+                "--watchlist", INPUTS / "watchlist.json", "--requests", reqs,
+                "--add-request", "Report long abstracts.", "--out", first)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        voice = (first / "references" / "author_voice.md").read_text(encoding="utf-8")
+        self.assertTrue(voice.endswith("## Standing requests from the author\n\n"
+                                       "- Keep figure captions short.\n- Report long abstracts.\n"))
+
+        # rebuild from the skill alone (no samples, profile or notes), adding one more request
+        second = self.work / "build-from" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--from-skill", first, "--add-request", "Flag undefined acronyms.",
+                "--out", second)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((second / "references" / "author_voice.md").read_text(encoding="utf-8"),
+                         voice + "- Flag undefined acronyms.\n")
+        a, b = (json.loads((d / "references" / "author_profile.json").read_text(encoding="utf-8"))
+                for d in (first, second))
+        self.assertEqual(a, b)
+        self.assertEqual((first / "SKILL.md").read_text(encoding="utf-8"),
+                         (second / "SKILL.md").read_text(encoding="utf-8"))
+
+        # --requests replaces the list; a skill without requests rebuilds unchanged
+        only = self.work / "only.md"
+        only.write_text("- Only this.\n", encoding="utf-8")
+        third = self.work / "build-replace" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--from-skill", second, "--requests", only, "--out", third)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((third / "references" / "author_voice.md").read_text(encoding="utf-8")
+                        .endswith("## Standing requests from the author\n\n- Only this.\n"))
+        noop = self.work / "build-noop" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--from-skill", self.out, "--out", noop)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((noop / "references" / "author_voice.md").read_text(encoding="utf-8"),
+                         (self.out / "references" / "author_voice.md").read_text(encoding="utf-8"))
+
+    def test_from_skill_needs_a_built_skill(self):
+        r = run(BUILDER / "build_skill.py", "--from-skill", INPUTS, "--out", self.work / "build" / "nope-voice")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("does not look like a voice skill", r.stderr + r.stdout)
+
     def test_rebuild_rules(self):
         foreign = self.work / "build" / "other-skill"
         foreign.mkdir(parents=True)

@@ -27,3 +27,7 @@ Offer the default first. Skip any question the conversation already answered.
      `~/.agents/skills/`.
    - Other options: this project's `.claude/skills/` or `.agents/skills/` (do not commit it if the
      repository is public), or a .zip for claude.ai.
+
+5. **Standing requests (optional).** "Is there anything the editor should always do or watch for in your
+   drafts? For example: keep figure captions short."
+   - Default: none. Requests can be added later without the samples (SKILL.md, "Updating the skill").

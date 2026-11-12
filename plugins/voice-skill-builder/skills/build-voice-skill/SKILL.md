@@ -1,6 +1,6 @@
 ---
 name: build-voice-skill
-description: Build a personal skill that revises the user's drafts in their own voice, from samples of their own writing (LaTeX, Markdown, plain text or Word). Use when the user wants the assistant to learn their writing style from their papers or documents, to create or update a skill that edits their drafts without making them sound AI-written, or to install such a skill in Claude Code, Codex or claude.ai.
+description: Build a personal skill that revises the user's drafts in their own voice, from samples of their own writing (LaTeX, Markdown, plain text or Word). Use when the user wants the assistant to learn their writing style from their papers or documents, to create or update a skill that edits their drafts without making them sound AI-written, to install such a skill in Claude Code, Codex or claude.ai, or to add a standing request (a lasting editing preference) to a voice skill built earlier.
 ---
 
 # Build a voice-preserving revision skill
@@ -105,10 +105,16 @@ skill's `author_voice.md`.
 python3 "$SKILL_DIR/scripts/build_skill.py" --name NAME --author "LABEL" \
     --profile "$WORK/profile.json" --notes "$WORK/voice_notes.md" \
     --watchlist "$WORK/watchlist.json" [--config "$WORK/config.json"] \
-    --out "$WORK/build/NAME"
+    [--requests "$WORK/requests.md"] --out "$WORK/build/NAME"
 ```
 
 `NAME` and `LABEL` come from the interview. Add `--force` to replace an earlier build of the same name.
+
+If the author gave standing requests (interview question 5), write them to `$WORK/requests.md` as a short
+bullet list in their words and pass `--requests`. Check each one first. A request about what to look for,
+what to report or where content belongs works well. One that asks for more rewriting than the guard allows
+(smoother prose, added transitions, a more formal tone) or for changes to frozen content cannot be met:
+say so, and offer the nearest form that can, usually reporting the problem instead of rewriting it.
 
 ## 7. Validate
 
@@ -156,6 +162,19 @@ section (`/NAME` in Claude Code, `$NAME` in Codex).
 Rerun steps 3 to 8 with all samples, old and new. Reuse `watchlist.json`, `voice_notes.md` and
 `config.json`, refreshing the watchlist counts from a new `find_slips.py` run and editing the notes where
 the new samples change the picture. Build and install with `--force`.
+
+To add, change or remove a standing request, no samples are needed: rebuild from the skill itself, which
+keeps its profile, watchlist, settings, notes and requests in its own files. Find its folder (Claude Code
+`~/.claude/skills/NAME/`, Codex `~/.agents/skills/NAME/`, a claude.ai skill synced into a Claude Code
+session `~/.claude/skills/synced/*/NAME/`, or an unpacked `NAME.zip`), check the request as in step 6, then:
+
+```
+python3 "$SKILL_DIR/scripts/build_skill.py" --from-skill SKILL_FOLDER --add-request "THE REQUEST" \
+    --out "$WORK/build/NAME" --force
+```
+
+To change or remove requests, write the full list to `$WORK/requests.md` and pass `--requests` instead of
+`--add-request`. Validate (with `--samples` if they are at hand) and install or package as in step 8.
 
 ## Privacy
 
