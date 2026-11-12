@@ -5,7 +5,16 @@ usage:
   python build_skill.py --name alex-voice --author "Alex" \\
       --profile work/profile.json --notes work/voice_notes.md \\
       [--watchlist work/watchlist.json] [--config work/config.json] \\
+      [--requests work/requests.md] [--add-request "..."] \\
       --out work/build/alex-voice [--force]
+  python build_skill.py --from-skill ~/.claude/skills/alex-voice --add-request "..." \\
+      --out work/build/alex-voice [--force]
+
+--requests is a markdown file of the author's standing requests (lasting preferences such as
+"keep figure captions short"); --add-request appends one, and may be repeated. --from-skill
+rebuilds from a skill this script built earlier, reading its profile, watchlist, settings,
+voice notes and requests from its own files, so no samples are needed; any other input given
+replaces the one read from the skill.
 
 Produces <out>/SKILL.md, references/ (author_profile.json, author_voice.md, author_stats.md,
 reviewer_prompt.md) and scripts/. The folder name equals the
@@ -28,10 +37,13 @@ sys.path.insert(0, str(TEMPLATE / "scripts"))
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.5.0"
+BUILDER_VERSION = "0.6.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
+NOTES_HEADING = "## Notes from reading the samples"
+REQUESTS_HEADING = "## Standing requests from the author"
+NO_NOTES = "_No notes were written for this build._"
 
 
 def check_name(name: str):
@@ -248,25 +260,65 @@ def git_unignored(path: Path) -> bool:
         return False
 
 
+def read_built_skill(skill_dir) -> dict:
+    """Recover the inputs of a skill this script built, from the skill's own files."""
+    skill = Path(skill_dir).expanduser()
+    merged = load_json(skill / "references" / "author_profile.json", None) \
+        if (skill / "references" / "author_profile.json").exists() else None
+    voice_path = skill / "references" / "author_voice.md"
+    if not merged or "skill" not in merged or "sentence_length" not in merged or not voice_path.exists():
+        raise SystemExit(f"{skill} does not look like a voice skill made by build_skill.py")
+    _, found, rest = voice_path.read_text(encoding="utf-8").partition("\n" + NOTES_HEADING + "\n")
+    if not found:
+        raise SystemExit(f"{voice_path} has no '{NOTES_HEADING}' section")
+    notes, _, requests = rest.partition("\n" + REQUESTS_HEADING + "\n")
+    notes = notes.strip()
+    return {"profile": {k: v for k, v in merged.items() if k not in ("watchlist", "config", "skill")},
+            "watchlist": merged.get("watchlist", []), "config": merged.get("config", {}),
+            "notes": "" if notes == NO_NOTES else notes, "requests": requests.strip(),
+            "name": merged["skill"].get("name"), "author": merged["skill"].get("author")}
+
+
+def gather_requests(base: str, extra) -> str:
+    lines = [base.strip()] if base and base.strip() else []
+    for r in extra or []:
+        r = " ".join(r.split())
+        if r:
+            lines.append(r if r.startswith("- ") else "- " + r)
+    text = "\n".join(lines)
+    if FILL_RE.search(text):
+        raise SystemExit("the standing requests still contain <!-- FILL ... --> markers")
+    return text
+
+
 def build(args):
+    old = read_built_skill(args.from_skill) if args.from_skill else {}
+    args.name = args.name or old.get("name")
+    args.author = args.author or old.get("author")
+    if not args.name:
+        raise SystemExit("--name is required (or --from-skill)")
     problems = check_name(args.name)
     if problems:
         raise SystemExit(f"invalid skill name '{args.name}': " + "; ".join(problems))
     out = Path(args.out)
     if out.name != args.name:
         raise SystemExit(f"the output folder must be named after the skill: .../{args.name} (got {out.name})")
-    pr = load_json(args.profile, None)
+    if not args.profile and not old:
+        raise SystemExit("--profile is required (or --from-skill)")
+    pr = load_json(args.profile, None) if args.profile else old["profile"]
     if not pr or "sentence_length" not in pr:
         raise SystemExit("--profile must be a profile written by style_profile.py")
-    watchlist = load_json(args.watchlist, [])
+    watchlist = load_json(args.watchlist, []) if args.watchlist else old.get("watchlist", [])
     validate_watchlist(watchlist)
-    config = load_json(args.config, {})
+    config = load_json(args.config, {}) if args.config else old.get("config", {})
     validate_config(config)
-    notes = Path(args.notes).read_text(encoding="utf-8").strip() if args.notes else ""
-    if not notes and not args.allow_missing_notes:
+    notes = Path(args.notes).read_text(encoding="utf-8").strip() if args.notes else old.get("notes", "")
+    if not notes and not args.allow_missing_notes and not old:
         raise SystemExit("--notes is required (voice notes written from the samples); pass --allow-missing-notes to skip")
     if FILL_RE.search(notes):
         raise SystemExit("the voice notes still contain <!-- FILL ... --> markers")
+    base = Path(args.requests).read_text(encoding="utf-8") if args.requests else old.get("requests", "")
+    requests = gather_requests(base, args.add_request)
 
     if out.exists():
         if not args.force:
@@ -290,7 +342,9 @@ def build(args):
                                                            encoding="utf-8")
     (out / "references" / "author_stats.md").write_text(style_profile.to_markdown(pr), encoding="utf-8")
     voice = voice_auto(pr, watchlist, author, built, config)
-    voice += "## Notes from reading the samples\n\n" + (notes or "_No notes were written for this build._") + "\n"
+    voice += NOTES_HEADING + "\n\n" + (notes or NO_NOTES) + "\n"
+    if requests:
+        voice += "\n" + REQUESTS_HEADING + "\n\n" + requests + "\n"
     (out / "references" / "author_voice.md").write_text(voice, encoding="utf-8")
 
     never, dash = device_rules(pr)
@@ -318,12 +372,15 @@ def build(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--name", required=True, help="skill name, e.g. alex-voice (kebab-case)")
+    ap.add_argument("--name", help="skill name, e.g. alex-voice (kebab-case); taken from --from-skill if omitted")
     ap.add_argument("--author", help="how the notes refer to the author, e.g. 'Alex' (default: 'the author')")
-    ap.add_argument("--profile", required=True, help="profile.json from style_profile.py")
+    ap.add_argument("--from-skill", help="rebuild from a skill this script built (no samples needed)")
+    ap.add_argument("--profile", help="profile.json from style_profile.py")
     ap.add_argument("--notes", help="voice_notes.md written from the samples")
     ap.add_argument("--watchlist", help="watchlist.json: the author's recurring slips")
     ap.add_argument("--config", help="config.json: LaTeX settings and allowed words (references/config_format.md)")
+    ap.add_argument("--requests", help="requests.md: the author's standing requests (replaces those of --from-skill)")
+    ap.add_argument("--add-request", action="append", help="append one standing request (repeatable)")
     ap.add_argument("--out", required=True, help="output folder, named after the skill")
     ap.add_argument("--force", action="store_true", help="replace a previous build in --out")
     ap.add_argument("--allow-missing-notes", action="store_true")

@@ -139,6 +139,13 @@ codex plugin add voice-skill-builder@editor-not-ghostwriter
 In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits),
 `guard.md` (what was kept, what was reverted and why), and a short list of what is left for you.
 
+Want it to always do something, such as keeping figure captions short? Add a standing request; the builder
+rebuilds your skill from its own files, so you don't need the samples again:
+
+```
+/build-voice-skill Add to my-voice: keep figure captions short and move experimental details to the text.
+```
+
 ## Good to know
 
 - **Private by default.** Nothing leaves your machine except what Claude itself reads. The built skill

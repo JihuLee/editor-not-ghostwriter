@@ -1,7 +1,7 @@
 {
   "name": "voice-skill-builder",
   "displayName": "Voice Skill Builder",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Build a private skill that revises your drafts in your own voice, from samples of your own writing.",
   "author": {
     "name": "Jihu Lee",
