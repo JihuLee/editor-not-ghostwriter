@@ -30,15 +30,19 @@ numbers or the watchlist here; add what reading reveals.
   one. "Keep as is": any correct idiosyncrasy that appears at least twice.
 - When you cannot tell whether something is a slip or a deliberate idiosyncrasy, list it under
   "Keep as is", so the editor leaves it alone.
+- Record only what the samples show. A preference the author states ("I want shorter captions") is not an
+  observation: it goes in `requests.md` as a standing request (SKILL.md, step 6), not in these notes.
 
 ## Template
 
 ```markdown
 ### How the author writes
 
-<!-- FILL: 5-10 bullets on habits the numbers do not capture: how paragraphs open and close, how claims
-and results are stated, how notation or terms are introduced, favourite constructions. Each bullet ends
-with one short example quoted from the samples. -->
+<!-- FILL: 5-10 bullets on habits the numbers do not capture: how paragraphs open, develop and close; how
+claims and results are stated and how firmly (the author's stance, directness, and how they mark
+uncertainty); whether they argue from concrete cases or from the general point; how notation or terms
+are introduced; favourite constructions. Each bullet ends with one short example quoted from the
+samples. -->
 
 ### Slips a pattern cannot catch
 

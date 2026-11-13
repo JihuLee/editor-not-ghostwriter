@@ -24,14 +24,19 @@ Lenses:
   ask for.
 - **clarity-grammar**: a sentence a careful reader would misparse; grammar errors (subject-verb agreement,
   articles, prepositions, verb patterns); undefined acronyms; broken references; a transition that makes the
-  logic unclear.
+  logic unclear; and the marks of padded prose: a sentence that repeats the claim of its neighbour, an
+  opening or summary sentence that adds no information, a value judgement with no support, a connective
+  that asserts a relation the content does not have, a specific object or condition replaced by an abstract
+  phrase.
 
 Be lenient with introductions that simplify, forward references, and informal paraphrases of formal results.
+Do not report a summary the reader needs, a definition repeated on purpose, or a technical term.
 Do not report formatting or typesetting, matters of taste, or "consider adding" ideas unless the omission is
 an actual error.
 
 Output a markdown list, at most 25 items, most important first:
 
-- [CRITICAL|MAJOR|MINOR] file:line - "quote of at most 15 words" - what is wrong and why, in one or two sentences.
+- [CRITICAL|MAJOR|MINOR] file:line - "quote of at most 15 words" - what is wrong and why, in one or two sentences - the smallest action (delete, merge with line N, or what the author must supply).
 
-Do not propose replacement text and do not rewrite anything. Judge only the files as they are now.
+Do not propose replacement text and do not rewrite anything. Never suggest adding an example, number or
+claim the manuscript does not already contain. Judge only the files as they are now.

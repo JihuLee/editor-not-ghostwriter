@@ -54,7 +54,10 @@ all prose, no content changes.
 "Must not read as AI-written" means two things, in this order: your own edits must add no AI tells
 (always), and passages that already read as AI text are reported to the author with the reasons (step 1).
 Edit those only when the author explicitly asks, and then remove the specific tells with minimal
-edits instead of rewriting.
+edits instead of rewriting. In such a de-slop pass you may also delete a sentence that only restates a
+claim the paragraph already makes, or fold it into the sentence it repeats, once you have checked that no
+claim, condition or number is lost. Never make text more concrete by inventing examples, numbers,
+experiences or evidence; list what is missing for the author instead.
 
 If the draft is one of the profile's own samples (the lint and the guard print a warning), build a
 temporary profile from the other samples or other papers by the author, so the draft is not compared with
@@ -109,12 +112,14 @@ Read `references/author_voice.md` first. Copy the draft to an edited copy in `RU
 
 - Climb only as far as the problem forces you: word (agreement, article, preposition, tense, a wrong term),
   then phrase, then clause. Most fixes stop at a word.
-- Rewrite a sentence only when it cannot be parsed or says something false. Then keep the author's subject
-  and main verb, reuse the words of the sentence and its neighbours, stay near its length, and make it no
-  smoother than the sentences around it. Split a run-on of 35+ words at an existing connective instead of
-  compressing it.
-- One sentence in, one sentence out. Do not add sentences, transitions, summaries, claims, hedges or
-  intensifiers. Never edit at paragraph level: a paragraph that needs restructuring goes to the author with
+- Rewrite a sentence only when it cannot be parsed. Then keep the author's subject and main verb, reuse the
+  words of the sentence and its neighbours, stay near its length, and make it no smoother than the
+  sentences around it; if it is a run-on of 35+ words, split it at an existing connective instead of
+  compressing it. A long sentence that parses stays as it is. A sentence that says something false or
+  claims more than the evidence is a content problem: report it, do not fix it.
+- One sentence in, one sentence out, except for that split and for the de-slop deletions in step 0, both
+  of which the guard lists for review. Do not add sentences, transitions, summaries, claims, hedges or
+  intensifiers, and do not vary sentence length or vocabulary to make the text look less machine-made. Never edit at paragraph level: a paragraph that needs restructuring goes to the author with
   a note on what is wrong.
 - {{layout_rule}}
 - Do not touch equations, inline math, theorem-like statements, proofs, code, numbers, citations, labels or
@@ -133,9 +138,16 @@ python3 "$SKILL_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile
 ```
 
 - The guard judges each changed line group ("edit") on its own, so one bad line does not take clean
-  neighbouring fixes with it. FLAG edits (math, citations, numbers, theorem text, code, new sentences,
-  tier-A words, devices the author never uses, also inside footnotes) are already reverted in `merged.tex`.
-  If a flagged edit was needed (say, a wrong number), do not force it through: list it for the author.
+  neighbouring fixes with it. FLAG edits (math, citations, numbers and what they count, theorem text,
+  code, new sentences, tier-A words, devices the author never uses, words that carry the claim, also
+  inside footnotes) are already reverted in `merged.tex`. If a flagged edit was needed (say, a wrong
+  number), do not force it through: list it for the author.
+- The guard's OK means its mechanical checks passed, not that the meaning survived; its word lists catch
+  common cases only. Read every kept edit against the original for negation, direction, modality and
+  certainty, quantifiers, cause, comparison, bounds and scope. Revert any edit you are not sure keeps the
+  claim, and report this meaning review apart from the guard's result.
+- Read the "Cumulative changes" section: a word the author uses can still be overused when many edits add
+  it. Take out the additions the text does not need.
 - Read every WARN. An edit over the paragraph budget means you rewrote too much: redo it smaller in the
   edited copy and run the guard again. A tier-B word or AI-favoured opener you introduced should be swapped
   for the author's own connective or dropped. (Words the author uses often, or words listed under `allow` in
@@ -143,8 +155,9 @@ python3 "$SKILL_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile
 - Repeat until each remaining WARN is one you can justify to the author in a sentence.
 - Unattended runs: add `--strict` so WARN edits are reverted too.
 - Optional, on a GPU machine: `scripts/detector_check.py draft.tex merged.tex` scores changed paragraphs
-  before and after with a local detector. Use it only to reject edits that made a paragraph look more
-  machine-written. Never rewrite toward a detector score, and do not upload an unpublished manuscript to an
+  before and after with a local detector. Treat its scores as a diagnostic: a paragraph whose score moved
+  toward machine-written gets a second look, and its edits are kept or reverted on what you read, not on the
+  score alone. Never rewrite toward a detector score, and do not upload an unpublished manuscript to an
   online detector.
 
 ### 6. Deliver
@@ -153,11 +166,12 @@ Give the author:
 1. `merged.tex` in `RUN` (the original plus accepted edits; same file structure as the input). Tell them
    where it is; copy it over the original only if they ask.
 2. A change list: `latexdiff draft.tex merged.tex > diff.tex` when latexdiff is installed, `git diff
-   --word-diff` when the draft is in git, otherwise the "Kept" sections of `guard.md`.
+   --word-diff` when the draft is in git, otherwise the "Kept" sections of `guard.md`. Give the guard's
+   result and your meaning review (step 5) as two separate lines.
 3. What you did not fix: content issues from the review, flagged edits that need the author, and
    passages the lint suggests they rewrite themselves.
 
-Stop after two rounds. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
+Stop after two rounds; this is an operating rule of this skill, not a measured optimum. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
 when subagents are available. Further rounds mostly trade the author's voice for a reviewer's taste.
 
 ## Standing requests

@@ -11,7 +11,11 @@ Works on LaTeX and Markdown/plain-text drafts. Each changed group of source line
 
 FLAG (the edit is reverted in merged.tex):
   - touches the preamble/front matter, display math, a theorem-like statement, a proof or a code block
-  - adds, removes or changes a citation key, a number, or inline/display math
+  - adds, removes or changes a citation key, a number (digits or a spelled-out quantity), or
+    inline/display math; reorders numbers, or changes the word right after one (its unit or object)
+  - meaning check: adds, drops or swaps a word that carries the claim (negation, modality, certainty,
+    evidence, quantity, direction, evaluation, comparison, cause; lexicon_en.MEANING_MARKERS);
+    only a warning when the same edit fixes one of the author's recurring slips
   - introduces a tier-A word, or a device the author never uses (em dash, contraction, "!")
   - adds a sentence (unless --allow-new-sentences)
 WARN (the edit is kept and listed for the author):
@@ -20,6 +24,11 @@ WARN (the edit is kept and listed for the author):
   - joins sentences onto one line when the author writes one sentence per line
   - the paragraph as a whole changed by more than --budget of its words
   - the paragraph's sentence rhythm got flatter, or it gained a summary-style closing sentence
+REPORTED (nothing is reverted for it): tier-B words, the author's own included, that all kept
+edits together added to the draft or to one section at more than the author's rate.
+
+OK means these mechanical checks passed, not that the meaning survived: read every kept edit
+against the original before delivering it.
 
 Exit code: 0 when nothing was reverted, 1 when some edits were reverted (merged.tex is
 written either way), 2 on usage errors.
@@ -36,6 +45,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import lexicon_en as LEX    # noqa: E402
 import prose                # noqa: E402
 import tells as tl          # noqa: E402
 import texprose             # noqa: E402
@@ -51,6 +61,9 @@ INLINE_MATH_RE = re.compile(r"(?<!\\)\$(.+?)(?<!\\)\$", re.S)
 DISPLAY_RE = re.compile(r"\\begin\s*\{(?:equation|align|gather|multline|eqnarray|displaymath|alignat|flalign)\*?\}|"
                         r"(?<!\\)\$\$|\\\[")
 NUM_RE = re.compile(r"(?<![A-Za-z_\\])\d+(?:\.\d+)?%?")
+NUM_WORD_RE = re.compile(r"(?<![A-Za-z])(" + "|".join(sorted(LEX.NUMBER_WORDS, key=len, reverse=True)) +
+                         r")(?![A-Za-z])", re.I)
+AFTER_NUM_RE = re.compile(r"[\s~\\,;:-]{0,6}([A-Za-z]+)")
 LABELS = {"tex": {"preamble": "touches the preamble", "frozen": "touches a theorem/definition/proof"},
           "md": {"preamble": "touches the front matter", "frozen": "touches a code block"}}
 
@@ -114,7 +127,7 @@ def inline_math(raw: str, fmt: str):
     return Counter(_norm_math(m) for m in INLINE_MATH_RE.findall(t))
 
 
-def numbers(raw: str, fmt: str) -> Counter:
+def _number_text(raw: str, fmt: str) -> str:
     t = _nocomment(raw, fmt)
     if fmt == "tex":
         t = TEX_CITE_RE.sub(" ", t)
@@ -127,8 +140,29 @@ def numbers(raw: str, fmt: str) -> Counter:
         t = MD_CITE_RE.sub(" ", t)
     t = re.sub(r"(?<!\\)\$\$.*?(?<!\\)\$\$", " ", t, flags=re.S)
     t = INLINE_MATH_RE.sub(" ", t)
-    t = re.sub(r"\\[A-Za-z]+\d*", " ", t)          # command names like \section2 are not numbers
-    return Counter(NUM_RE.findall(t))
+    return re.sub(r"\\[A-Za-z]+\d*", " ", t)          # command names like \section2 are not numbers
+
+
+def _unit(word: str) -> str:
+    w = word.lower()
+    return w[:-1] if len(w) > 3 and w.endswith("s") else w
+
+
+def number_items(raw: str, fmt: str) -> list:
+    """Numbers in order, digits and spelled-out quantities, as (value, word after it, shown text, as written)."""
+    t = _number_text(raw, fmt)
+    found = [(m.start(), m.end(), m.group(0)) for m in NUM_RE.finditer(t)]
+    found += [(m.start(), m.end(), str(LEX.NUMBER_WORDS[m.group(1).lower()])) for m in NUM_WORD_RE.finditer(t)]
+    items = []
+    for start, end, value in sorted(found):
+        nxt = AFTER_NUM_RE.match(t, end)
+        unit = _unit(nxt.group(1)) if nxt else ""
+        items.append((value, unit, " ".join(t[start:nxt.end() if nxt else end].split()), t[start:end].lower()))
+    return items
+
+
+def numbers(raw: str, fmt: str) -> Counter:
+    return Counter(v for v, *_ in number_items(raw, fmt))
 
 
 def word_change_ratio(a_words, b_words) -> float:
@@ -231,11 +265,24 @@ def check_hunk(h: Hunk, kinds: dict, n_orig: int, fmt: str, rules: tl.Rules, all
     # ---- frozen content
     if cite_keys(h.a, fmt) != cite_keys(h.b, fmt):
         h.flags.append("citation keys changed")
-    na, nb = numbers(h.a, fmt), numbers(h.b, fmt)
+    ia, ib = number_items(h.a, fmt), number_items(h.b, fmt)
+    na, nb = Counter(v for v, *_ in ia), Counter(v for v, *_ in ib)
     if nb - na:
         h.flags.append("new or changed number(s): " + ", ".join(sorted((nb - na).elements()))[:80])
     elif na - nb:
-        h.warns.append("number(s) removed: " + ", ".join(sorted((na - nb).elements()))[:80])
+        h.flags.append("number(s) removed: " + ", ".join(sorted((na - nb).elements()))[:80])
+    elif [v for v, *_ in ia] != [v for v, *_ in ib]:
+        h.flags.append("numbers reordered, so a value may now belong to something else: "
+                       + ", ".join(v for v, *_ in ia)[:40] + " -> " + ", ".join(v for v, *_ in ib)[:40])
+    else:
+        moved = [(sa, sb) for (_, ua, sa, _), (_, ub, sb, _) in zip(ia, ib) if ua != ub]
+        if moved:
+            h.flags.append("the word after a number (its unit or object) changed: "
+                           + "; ".join(f"'{sa}' -> '{sb}'" for sa, sb in moved)[:120])
+        rewritten = [(xa, xb) for (*_, xa), (*_, xb) in zip(ia, ib) if xa.isalpha() != xb.isalpha()]
+        if rewritten:
+            h.flags.append("a number is written differently: "
+                           + "; ".join(f"'{xa}' -> '{xb}'" for xa, xb in rewritten)[:80])
     if len(DISPLAY_RE.findall(_nocomment(h.a, fmt))) != len(DISPLAY_RE.findall(_nocomment(h.b, fmt))):
         h.flags.append("display math added or removed")
 
@@ -288,6 +335,14 @@ def check_hunk(h: Hunk, kinds: dict, n_orig: int, fmt: str, rules: tl.Rules, all
     fixed = [m for m, _ in tl.watchlist_hits(pa, rules.watchlist) if m not in after]
     if fixed:
         h.notes.append("fixes recurring slip: " + ", ".join(f"'{m}'" for m in fixed))
+    ma, mb = tl.meaning_markers(pa), tl.meaning_markers(pb)
+    changed = sorted(k for k in set(ma) | set(mb) if len(ma.get(k, [])) != len(mb.get(k, [])))
+    if changed:
+        gone = [w for k in changed for w in ma.get(k, [])[len(mb.get(k, [])):]]
+        new = [w for k in changed for w in mb.get(k, [])[len(ma.get(k, [])):]]
+        msg = (f"meaning check ({', '.join(sorted({c for c, _ in changed}))}): "
+               f"{', '.join(repr(w) for w in gone) or 'nothing'} -> {', '.join(repr(w) for w in new) or 'nothing'}")
+        (h.warns if fixed else h.flags).append(msg)
     h.ratio = word_change_ratio(words_of(pa), words_of(pb)) if pa else 1.0
     h.summary = short_diff(pa, pb) if pa != pb else "markup-only change (prose identical): " + short_diff(h.a, h.b)
 
@@ -320,6 +375,42 @@ def build(a_lines, b_lines, hunks, accepted):
 def merged_paragraph(doc_m, ms, me, footnote=False):
     return [s for p in doc_m.paragraphs
             if p.footnote == footnote and not (p.end_line < ms or p.start_line > me) for s in p.sentences]
+
+
+def _sections(doc, lines):
+    """Paragraphs grouped by the heading above them, with a short title for each group."""
+    heads = sorted(ln for ln, k in doc.line_kind.items() if k == "heading")
+    groups = {}
+    for p in doc.paragraphs:
+        groups.setdefault(sum(1 for ln in heads if ln < p.start_line), []).append(p)
+    titles = {0: "before the first heading"}
+    titles.update({i + 1: " ".join(lines[ln - 1].split())[:60] for i, ln in enumerate(heads)})
+    return groups, titles
+
+
+def cumulative_use(doc_a, doc_m, a_lines, m_lines, rules) -> list:
+    """Tier-B words that the kept edits together added, per draft and per section, above the author's rate.
+
+    Each edit is checked on its own, and the author's own words are exempt there; this catches the same
+    word added edit after edit. It reports, it does not revert: a short section's rate alone decides little."""
+    scopes = [("the whole draft", doc_a.paragraphs, doc_m.paragraphs)]
+    ga, ta = _sections(doc_a, a_lines)
+    gm, _ = _sections(doc_m, m_lines)
+    if len(ga) > 1 and set(ga) == set(gm):
+        scopes += [(f"section '{ta[k]}'", ga[k], gm[k]) for k in sorted(ga)]
+    found, seen = [], set()
+    for scope, pa, pm in scopes:
+        n = sum(len(s.words) for p in pa for s in p.sentences)
+        ca = tl.count_tier("\n".join(p.text for p in pa), rules.tier_soft)
+        cm = tl.count_tier("\n".join(p.text for p in pm), rules.tier_soft)
+        for k, v in sorted(cm.items()):
+            added = v - ca.get(k, 0)
+            per_1k = 1000.0 * added / max(1, n)
+            if added >= 2 and per_1k > max(rules.soft_rate(k), 1.0) and k not in seen:
+                found.append({"scope": scope, "word": k, "added": added, "added_per_1k": round(per_1k, 1),
+                              "author_per_1k": round(rules.soft_rate(k), 2)})
+        seen |= {f["word"] for f in found}
+    return found
 
 
 def guard(orig_path, edit_path, pr, budget=0.2, allow_new_sentences=False, strict=False, fmt=None):
@@ -422,6 +513,7 @@ def guard(orig_path, edit_path, pr, budget=0.2, allow_new_sentences=False, stric
             vals = [tl.burrows_delta(tl.fw_freqs(c), fw["mu"], fw["sd"]) for c in chunks]
             deltas[name] = round(sum(vals) / len(vals), 3) if vals else None
         deltas["author_p95"] = fw.get("delta_loo_p95")
+    cumulative = cumulative_use(doc_a, doc_m, a_lines, merged, rules)
     soft = {}
     for name, d in (("original", doc_a), ("merged", doc_m)):
         txt = "\n".join(p.text for p in d.paragraphs)
@@ -431,7 +523,7 @@ def guard(orig_path, edit_path, pr, budget=0.2, allow_new_sentences=False, stric
         "circular": profile_includes(pr, a_text), "format": fmt,
         "original": str(orig_path), "edited": str(edit_path), "budget": budget,
         "hunks": hunks, "merged": merged, "overall_change": overall, "deltas": deltas, "tierB": soft,
-        "para_notes": para_notes,
+        "para_notes": para_notes, "cumulative": cumulative,
     }
 
 
@@ -451,7 +543,9 @@ def to_markdown(res) -> str:
     d = res["deltas"]
     out = [f"# Diff guard: {Path(res['original']).name} -> {Path(res['edited']).name}", "",
            f"**{len(hs)} edits (changed line groups): {n_ok} kept clean, {n_warn} kept but need a look, "
-           f"{n_flag} reverted.** The merged file is the original plus every edit that was not reverted.", "",
+           f"{n_flag} reverted.** The merged file is the original plus every edit that was not reverted. "
+           "Kept means the mechanical checks passed, not that the meaning survived: compare each kept edit "
+           "with the original before delivering it.", "",
            f"- Prose words changed overall: {res['overall_change']:.1%}",
            f"- Tier-B words per 1k: {res['tierB']['original']} -> {res['tierB']['merged']}"]
     if d.get("original") is not None:
@@ -474,6 +568,21 @@ def to_markdown(res) -> str:
             out += _fence(h.a, "-") if h.a.strip() else []
             out += _fence(h.b, "+") if h.b.strip() else []
             out += ["```", ""]
+    meaning = [h for h in hs if any(m.startswith("meaning check") for m in h.flags + h.warns)]
+    if meaning:
+        out += [f"## Meaning checks ({len(meaning)})", "",
+                "Edits that add, drop or swap a word carrying the claim. Reverted unless they fix a recurring slip; "
+                "a kept one still needs the author's or your reading.", ""]
+        out += [f"- {h.where()[0]} [{h.status}]: " + "; ".join(m for m in h.flags + h.warns
+                                                            if m.startswith("meaning check")) for h in meaning]
+        out.append("")
+    if res.get("cumulative"):
+        out += [f"## Cumulative changes ({len(res['cumulative'])})", "",
+                "Words the kept edits added together, above the author's own rate. Nothing was reverted for this; "
+                "take out the additions that the text does not need.", ""]
+        out += [f"- {c['scope']}: '{c['word']}' added {c['added']} times ({c['added_per_1k']}/1k; "
+                f"author {c['author_per_1k']}/1k)" for c in res["cumulative"]]
+        out.append("")
     ok = [h for h in hs if h.status == "OK"]
     out += [f"## Kept clean ({len(ok)})", ""]
     for h in ok:
@@ -488,7 +597,7 @@ def to_json(res) -> dict:
     return {
         "original": res["original"], "edited": res["edited"], "format": res["format"], "budget": res["budget"],
         "overall_change": round(res["overall_change"], 4), "deltas": res["deltas"], "tierB_per_1k": res["tierB"],
-        "paragraph_issues": res["para_notes"], "circular": res["circular"],
+        "paragraph_issues": res["para_notes"], "circular": res["circular"], "cumulative": res["cumulative"],
         "hunks": [{"status": h.status, "original_lines": h.where()[0], "edited_lines": h.where()[1],
                    "flags": h.flags, "warnings": h.warns, "notes": h.notes, "change": h.summary,
                    "word_change_ratio": round(h.ratio, 3)} for h in res["hunks"]],

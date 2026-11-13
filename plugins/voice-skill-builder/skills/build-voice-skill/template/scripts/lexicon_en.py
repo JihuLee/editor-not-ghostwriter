@@ -138,3 +138,64 @@ FUNCTION_WORDS = [
     "how", "what", "whether", "because", "although", "even", "much", "many", "some", "without",
     "within", "via", "further", "first",
 ]
+
+
+def _verb(base, third=None, past=None, ing=None, participle=None):
+    """A regular-ish verb's forms: increase -> increase, increases, increased, increasing."""
+    stem = base[:-1] if base.endswith("e") else base
+    forms = [base, third or (base + ("es" if base.endswith(("s", "sh", "ch", "x")) else "s")),
+             past or (base + "d" if base.endswith("e") else base + "ed"), ing or stem + "ing"]
+    return forms + ([participle] if participle else [])
+
+
+# Words whose change alters what a sentence claims: direction, negation, modality, certainty,
+# evidential strength, quantity, cause and comparison. The guard treats an edit that adds, drops
+# or swaps one as a content change ("meaning check" in diff_guard.py). Forms in one group are
+# interchangeable, so agreement and tense fixes ("shows" -> "show", "less" -> "fewer",
+# "much" -> "many", "may" -> "might") pass. Group keys are what the guard compares.
+MEANING_MARKERS = {
+    "negation": {"not": ["not", "no", "never", "none", "neither", "nor", "without", "cannot"]},
+    "modality": {"may": ["may", "might"], "can": ["can", "could", "cannot"], "will": ["will", "would"],
+                 "must": ["must"], "should": ["should"]},
+    "certainty": {"likely": ["likely", "probably", "presumably"], "unlikely": ["unlikely"],
+                  "possibly": ["possibly", "perhaps", "potentially"],
+                  "certainly": ["certainly", "definitely", "necessarily", "undoubtedly"]},
+    "evidence": {"suggest": _verb("suggest"), "indicate": _verb("indicate"),
+                 "show": _verb("show", participle="shown"), "demonstrate": _verb("demonstrate"),
+                 "prove": _verb("prove", participle="proven"), "confirm": _verb("confirm"),
+                 "establish": _verb("establish")},
+    "quantity": {"all": ["all"], "every": ["every", "each"], "some": ["some"], "any": ["any"],
+                 "most": ["most"], "many": ["many", "much"], "few": ["few"], "several": ["several"],
+                 "both": ["both"], "always": ["always"], "often": ["often", "frequently"],
+                 "usually": ["usually", "typically", "generally"], "sometimes": ["sometimes", "occasionally"],
+                 "rarely": ["rarely", "seldom"], "only": ["only", "solely", "exclusively"], "least": ["least"]},
+    "direction": {"up": (_verb("increase") + _verb("rise", past="rose", participle="risen") +
+                         _verb("grow", past="grew", participle="grown") + _verb("raise") +
+                         ["higher", "larger", "greater", "more", "upper"]),
+                  "down": (_verb("decrease") + _verb("decline") + _verb("drop", past="dropped", ing="dropping") +
+                           _verb("fall", past="fell", participle="fallen") + _verb("reduce") +
+                           _verb("shrink", past="shrank", participle="shrunk") + ["lower", "smaller", "less", "fewer"]),
+                  "max": ["maximum", "maximal", "max"] + _verb("maximize"),
+                  "min": ["minimum", "minimal", "min"] + _verb("minimize")},
+    "evaluation": {"better": (["better", "best", "superior", "improvement", "improvements"] + _verb("improve") +
+                              _verb("outperform")),
+                   "worse": (["worse", "worst", "inferior", "degradation"] + _verb("worsen") + _verb("degrade") +
+                             _verb("underperform"))},
+    "comparison": {"same": ["same", "similar", "similarly", "equal", "equally", "identical", "comparable"],
+                   "differ": ["different", "differently", "distinct", "difference", "differences"] + _verb("differ")},
+    "cause": {"cause": _verb("cause") + ["causal", "causally", "leads", "led"],
+              "because": ["because", "due"],
+              "therefore": ["therefore", "thus", "hence", "consequently", "accordingly"],
+              "associated": ["associated", "association", "associations", "correlated", "correlation",
+                             "correlations", "correlate", "correlates", "linked"]},
+}
+
+# Spelled-out quantities the guard protects like digits. "one" is left out: it is far more often a
+# pronoun ("one can show") than a count, and "first", "second" are ordinals or units.
+NUMBER_WORDS = {
+    "zero": 0, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+    "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+    "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+    "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000,
+    "million": 10**6, "billion": 10**9, "dozen": 12, "half": 0.5, "twice": 2, "thrice": 3, "triple": 3,
+}

@@ -13,8 +13,8 @@ not bring your voice back.
 
 This project takes the other route. Give it a few things you wrote yourself, and it builds a **private
 skill that edits like a copy editor, never a ghostwriter**, for Claude Code, claude.ai or Codex. It makes
-the smallest change that fixes each problem, and a guard script throws out any edit that doesn't sound
-like you.
+the smallest change that fixes each problem. A guard script then reverts edits that touch math, numbers,
+citations or the words that carry a claim, or that add AI-typical words, and lists the rest for you to check.
 
 ## What it looks like
 
@@ -56,7 +56,8 @@ read least like the author.
 - **Your writing is the baseline.** It measures your sentence rhythm, punctuation, connectives and
   function words. If you really do write "intricate" or use em dashes, they stay. Only your own recurring
   slips get fixed.
-- **Content is frozen.** Math, numbers, citations, theorem statements, proofs and code are off limits.
+- **Content is frozen.** Math, numbers (and what they count), citations, theorem statements, proofs and
+  code are off limits, and an edit that flips a claim's direction, certainty or scope is reverted.
 - **Reviewers start fresh.** Three independent reviews look for problems without being told what was
   fixed, so earlier rounds can't inflate their verdict.
 
@@ -153,7 +154,9 @@ rebuilds your skill from its own files, so you don't need the samples again:
   [More on privacy](docs/usage.md#privacy).
 - **English only** for now; see [docs/adding-a-language.md](docs/adding-a-language.md).
 - **Heuristics, not proof.** A clean lint does not certify a text as human, and a flag does not prove LLM
-  use.
+  use. The guard's checks are mechanical too: a kept edit can still change meaning in a way its word lists
+  miss, so read the diff. How much the skill improves real editing has not been measured yet
+  ([docs/evaluation.md](docs/evaluation.md)).
 - **Your voice, your work.** This is for getting editing help without losing your voice, not for passing
   off generated text as your own. Check your venue's policy on AI assistance; the skill marks any passage
   Claude drafts so you can rewrite or disclose it.

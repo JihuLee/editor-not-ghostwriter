@@ -111,12 +111,106 @@ class TestGuardLatex(GuardCase):
 class TestGuardMarkdown(GuardCase):
     def test_markdown_rules(self):
         res = self.run_guard(SAMPLE_MD, [("ours took fifteen", "ours took twenty")])
-        self.assertEqual(self.statuses(res), ["OK"])
+        self.assertEqual(self.statuses(res), ["FLAG"])          # a spelled-out quantity is a number too
         res = self.run_guard(SAMPLE_MD, [("At minus ten degrees", "At minus 10 degrees")])
         self.assertEqual(self.statuses(res), ["FLAG"])
         res = self.run_guard(SAMPLE_MD, [("interval = min(", "interval = max(")])
         self.assertEqual(self.statuses(res), ["FLAG"])
         self.assertIn("touches a code block", res["hunks"][0].flags)
+
+
+PAD = "We describe a small scheduler for battery-powered sensors in this note.\n\n"
+
+
+class TextGuardCase(GuardCase):
+    def run_text(self, orig: str, edited: str, profile=PROFILE, **kw):
+        (self.dir / "o.md").write_text(PAD + orig + "\n", encoding="utf-8")
+        (self.dir / "e.md").write_text(PAD + edited + "\n", encoding="utf-8")
+        return diff_guard.guard(self.dir / "o.md", self.dir / "e.md", profile, **kw)
+
+    def assert_statuses(self, cases, expected, **kw):
+        for a, b in cases:
+            with self.subTest(edit=b):
+                self.assertEqual(self.statuses(self.run_text(a, b, **kw)), [expected])
+
+
+class TestMeaningChecks(TextGuardCase):
+    def test_claim_changes_are_reverted_even_with_all_else_clean(self):
+        self.assert_statuses([
+            ("The treatment increases the risk in this cohort.", "The treatment decreases the risk in this cohort."),
+            ("The method may converge under these assumptions.", "The method will converge under these assumptions."),
+            ("Exposure is associated with higher error in this cohort.", "Exposure causes higher error in this cohort."),
+            ("Some sensors drift after a week in the field.", "All sensors drift after a week in the field."),
+            ("The theorem gives an upper bound on the delay.", "The theorem gives a lower bound on the delay."),
+            ("The results suggest that the scheduler helps.", "The results show that the scheduler helps."),
+            ("The scheduler does not reduce the delay much.", "The scheduler does reduce the delay much."),
+        ], "FLAG", strict=True)
+        res = self.run_text("The method may converge under these assumptions.",
+                            "The method will converge under these assumptions.")
+        self.assertIn("meaning check (modality): 'may' -> 'will'", res["hunks"][0].flags)
+        self.assertIn("## Meaning checks (1)", diff_guard.to_markdown(res))
+
+    def test_grammar_fixes_pass(self):
+        self.assert_statuses([
+            ("This design allows to reduce the memory footprint.", "This design allows us to reduce the memory footprint."),
+            ("The sensor takes less samples than the fixed schedule.", "The sensor takes fewer samples than the fixed schedule."),
+            ("The method may converges under these assumptions.", "The method may converge under these assumptions."),
+            ("Much sensors fail in the field after the first winter.", "Many sensors fail in the field after the first winter."),
+            ("The estimate does not converges when the noise is large.", "The estimate does not converge when the noise is large."),
+            ("There is no significant differences between the two sites.", "There are no significant differences between the two sites."),
+            ("We did not observed any drift during the 12 weeks of the study.", "We did not observe any drift during the 12 weeks of the study."),
+            ("Each of the sensors have a battery that lasts for weeks.", "Each of the sensors has a battery that lasts for weeks."),
+            ("The settings are same as in the previous section of the paper.", "The settings are the same as in the previous section of the paper."),
+            ("The controller is competitive to the baselines on every site.", "The controller is competitive with the baselines on every site."),
+        ], "OK")
+
+    def test_a_recurring_slip_fix_only_warns(self):
+        a = "Its performance is not favorable than the others on this site."
+        b = "Its performance is less favorable than the others on this site."
+        self.assertEqual(self.statuses(self.run_text(a, b)), ["FLAG"])
+        pr = json.loads(json.dumps(PROFILE))
+        pr["watchlist"].append({"match": "not favorable than", "fix": "less favorable than", "count": 2})
+        res = self.run_text(a, b, profile=pr)
+        self.assertEqual(self.statuses(res), ["WARN"])
+        self.assertTrue(res["hunks"][0].warns[0].startswith("meaning check"))
+
+
+class TestNumbers(TextGuardCase):
+    def test_numbers_keep_their_values_order_and_objects(self):
+        self.assert_statuses([
+            ("Group A contains 21 samples and group B contains 47 samples.",
+             "Group A contains 47 samples and group B contains 21 samples."),
+            ("The method uses fifteen samples in each batch.", "The method uses twenty samples in each batch."),
+            ("Group A contains 21 samples in this run of the study.", "Group A contains samples in this run of the study."),
+            ("Each upload takes 15 ms on the radio of the sensor.", "Each upload takes 15 s on the radio of the sensor."),
+        ], "FLAG")
+
+    def test_grammar_around_numbers_passes(self):
+        self.assert_statuses([
+            ("The controller uses 21 sample per hour on a calm day.", "The controller uses 21 samples per hour on a calm day."),
+            ("Group A contains 21 samples and group B contains 47 sample.",
+             "Group A contains 21 samples and group B contains 47 samples."),
+            ("The two sensor were placed at the same height.", "The two sensors were placed at the same height."),
+        ], "OK")
+
+    def test_text_that_needs_no_edit(self):
+        text = "In the loss landscape, gradients vanish; see the appendix for the 12 runs."
+        self.assertEqual(self.run_text(text, text)["hunks"], [])
+
+
+class TestCumulative(TextGuardCase):
+    def test_an_own_word_added_everywhere_is_reported_not_reverted(self):
+        pr = json.loads(json.dumps(PROFILE))
+        pr["rates_per_1k"]["tierB"]["novel"] = 1.0
+        paras = [f"Paragraph {i}: we run the small controller on the sensor and log each reading to a file."
+                 for i in range(5)]
+        orig = "\n\n".join(paras)
+        res = self.run_text(orig, orig.replace("small controller", "novel controller"), profile=pr, strict=True)
+        self.assertEqual(self.statuses(res), ["OK"] * 5)
+        self.assertEqual([(c["word"], c["added"]) for c in res["cumulative"]], [("novel", 5)])
+        self.assertIn("## Cumulative changes (1)", diff_guard.to_markdown(res))
+        once = orig.replace("small controller", "novel controller", 1)
+        self.assertEqual(self.run_text(orig, once, profile=pr)["cumulative"], [])
 
 
 class TestAuthorWords(GuardCase):
