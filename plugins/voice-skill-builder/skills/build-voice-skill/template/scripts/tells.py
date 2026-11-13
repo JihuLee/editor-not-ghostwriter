@@ -57,6 +57,32 @@ def count_tier(text: str, tier) -> Counter:
     return count_patterns(text, TIER_A if tier == "A" else TIER_B)
 
 
+_MARKERS = {form: (cat, key) for cat, groups in LEX.MEANING_MARKERS.items()
+            for key, forms in groups.items() for form in forms}
+_MARKER_WORD_RE = re.compile(r"[a-z][a-z'\-]*[a-z]|[a-z]")
+_NT_BASES = {"ca": "can", "wo": "will", "sha": "shall"}
+
+
+def meaning_markers(text: str) -> dict:
+    """{(category, group): [surface words]} for the meaning-bearing words in text.
+
+    "cannot" and "n't" count as a negation plus the modal or verb they attach to."""
+    found = {}
+    for tok in _MARKER_WORD_RE.findall(text.lower().replace("\u2019", "'")):
+        word, hits = tok, []
+        if tok.endswith("n't"):
+            hits.append(("negation", "not"))
+            tok = _NT_BASES.get(tok[:-3], tok[:-3])
+        elif tok == "cannot":
+            hits.append(("negation", "not"))
+            tok = "can"
+        if tok in _MARKERS:
+            hits.append(_MARKERS[tok])
+        for h in hits:
+            found.setdefault(h, []).append(word)
+    return found
+
+
 def structural_counts(text: str) -> Counter:
     c = Counter()
     c["em_dash"] = text.count(EM_DASH)

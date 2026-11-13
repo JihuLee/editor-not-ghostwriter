@@ -60,4 +60,5 @@ a document- or section-level signal, never as evidence about a single sentence.
 
 These are heuristics, tuned to catch what an editing pass adds, not to classify whole documents. A clean
 lint does not certify a text as human, and a flag does not prove LLM use. Commercial detectors are known to
-misread non-native English as machine text; comparing against the author's own writing avoids that bias.
+misread non-native English as machine text; comparing against the author's own writing is meant to
+reduce that bias, which has not been evaluated.

@@ -15,8 +15,9 @@ usage:
   python detector_check.py original.tex merged.tex --scorer mymodule:score --ai-direction higher
 
 Rules of use:
-  - Never rewrite text to raise this score. Use it only to REJECT edits: when a paragraph
-    gets worse, revert that paragraph's edits (keep the original wording).
+  - Never rewrite text to raise this score. The score is a diagnostic, not a verdict: a
+    paragraph that moved toward "machine" gets a second look, and its edits are kept or
+    reverted on what a reader sees there, not on the score alone.
   - Keep unpublished manuscripts on your own machine; do not paste them into online detectors.
   - Scores on paragraphs under ~40 words are noise; they are skipped.
 """
@@ -121,7 +122,7 @@ def main():
           f"{len(pairs)} changed paragraphs scored, {n_bad} moved toward 'machine'.", "",
           "| original lines | edited lines | before | after | change | verdict |", "|---|---|---|---|---|---|"] + rows
     Path(a.report).write_text("\n".join(md) + "\n", encoding="utf-8")
-    print(f"{len(pairs)} paragraphs scored, {n_bad} to revert -> {a.report}")
+    print(f"{len(pairs)} paragraphs scored, {n_bad} to look at again -> {a.report}")
     sys.exit(1 if n_bad else 0)
 
 

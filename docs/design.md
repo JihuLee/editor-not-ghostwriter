@@ -22,7 +22,9 @@ then sentence), one sentence in and one sentence out, and no paragraph-level rew
 
 Commercial detectors misread non-native English as machine text [Liang et al.]. A fixed list of
 "AI words" has the same problem in miniature: some people genuinely write "intricate" or use em dashes.
-So every rule is relative to the author's own samples:
+So every rule is relative to the author's own samples. This is meant to reduce that bias for the
+author at hand; whether it does has not been measured (see [evaluation.md](evaluation.md)).
+
 
 - a tier-A word the author uses twice or more becomes a soft (rate-based) signal for that author;
 - em dashes, contractions and exclamation marks are hard rules only for authors whose samples have
@@ -59,20 +61,22 @@ The same benchmark found that AI review comments are complementary to human ones
 complain about false positives and nitpicks, so the skills drop style preferences and nitpicks and favour
 precision over recall.
 
-## 5. Detectors veto; they are never a target
+## 5. Detectors are a diagnostic, never a target
 
 Once a measure becomes a target it stops measuring. Iteratively rewriting a paper against an LLM reviewer
 raises its score without improving it ("paper laundering") [Review Arcade], and content-preserving
 rhetorical changes move AI-review scores [Rhetoric reward-hacking]. The same holds for detectors. The
 optional detector check (Binoculars, a zero-shot detector where a lower score means more machine-like
-[Hans et al.]) compares each changed paragraph before and after and can only *revert* an edit that moved it
-toward "machine". Nothing is ever rewritten to raise a score.
+[Hans et al.]) compares each changed paragraph before and after. A paragraph that moved toward "machine"
+gets a second look, and its edits stand or fall on what a reader sees there: a detector's score for one
+paragraph is not a validated measure of editing quality. Nothing is ever rewritten to raise a score.
 
 ## 6. Two rounds
 
 The paper-improvement loop above found that a first round catches structural issues, a second catches
 presentation issues, and later rounds add little [ARIS]. For an editor whose goal is to preserve a voice,
-later rounds mostly trade the author's voice for a reviewer's taste, so the skills stop after two.
+later rounds mostly trade the author's voice for a reviewer's taste, so the skills stop after two. This is
+an operating choice based on one loop's report, not a measured optimum.
 
 ## 7. Disclosure
 
@@ -80,6 +84,19 @@ Publishers treat AI help with editing differently from AI-generated text. IEEE, 
 AI-generated text to be disclosed in the acknowledgments and only recommends disclosure for editing and
 grammar assistance [IEEE]. The built skill marks every passage Claude drafts, so the author can rewrite it
 in their own words or disclose it.
+
+## 8. Meaning and numbers are checked mechanically, then by reading
+
+A copy edit can change what a sentence claims with one word ("increases" for "decreases", "may" for
+"will", "some" for "all", "associated with" for "causes") while every other rule passes. The guard
+therefore reverts an edit that adds, drops or swaps a word from a list of claim-carrying words (negation,
+direction, modality, certainty, evidence, quantity, cause, comparison), unless the same edit fixes one of
+the author's recorded slips, and compares numbers in order together with the word after each, so a swap,
+a changed unit and a spelled-out quantity are caught too. These lists catch common cases, not meaning: a
+kept edit can still change a claim in a way no list foresees, so the editor reads every kept edit against
+the original and reports that review apart from the guard's result. Embedding similarity is not used as
+a test of meaning. How often these checks block a correct grammar fix is measured on a small fixed set
+(see [evaluation.md](evaluation.md)), not in real use.
 
 ## References
 

@@ -65,6 +65,13 @@ yourself or build with `--allow-missing-notes`.
 | adds a tier-A word ("delve", "pivotal", "seamless", ...) that you don't use yourself | splits or removes a sentence, changes a paragraph break |
 | adds an em dash, contraction or "!" when your own samples have none | changes more than 20% of a paragraph's words |
 | adds a sentence | flattens the paragraph's sentence rhythm, adds a summary-style closing sentence |
+| reorders numbers, changes the word after one (its unit or object) or how it is written (ten -> 10) | swaps a claim word in an edit that fixes one of your recorded slips |
+| adds, drops or swaps a word that carries the claim: not, may/will, some/all, increase/decrease, upper/lower, suggest/show, associated/causes, ... | |
+
+After the per-edit checks, the report adds two sections. **Meaning checks** lists every edit that touched
+a claim word. **Cumulative changes** lists words that the kept edits together added beyond your own rate,
+your own words included; nothing is reverted for it. A kept edit has passed mechanical checks only: read
+it against the original.
 
 Each changed line group is judged on its own, so one bad line never takes a clean neighbouring fix with
 it. `--strict` reverts the WARN edits too, for unattended runs. Words you use often are exempt
