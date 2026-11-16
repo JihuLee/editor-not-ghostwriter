@@ -58,8 +58,9 @@ read least like the author.
   slips get fixed.
 - **Content is frozen.** Math, numbers (and what they count), citations, theorem statements, proofs and
   code are off limits, and an edit that flips a claim's direction, certainty or scope is reverted.
-- **Reviewers start fresh.** Three independent reviews look for problems without being told what was
-  fixed, so earlier rounds can't inflate their verdict.
+- **Reviewers start fresh.** Independent reviews (math, claims, grammar, and delivery: how clearly the
+  text carries its points) look for problems without being told what was fixed, so earlier rounds can't
+  inflate their verdict. Delivery findings are only suggestions; nothing changes unless you accept them.
 
 The reasoning and sources are in [docs/design.md](docs/design.md).
 
@@ -171,4 +172,6 @@ rebuilds your skill from its own files, so you don't need the samples again:
 
 ## License
 
-MIT
+MIT. The delivery review adapts principles from [SciWrite](https://github.com/labarba/sciwrite) by Lorena A.
+Barba ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), shortened and reworded; SciWrite draws
+on Kristin Sainani's *Writing in the Sciences*.
