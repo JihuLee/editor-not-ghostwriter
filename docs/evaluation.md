@@ -80,3 +80,4 @@ they motivate a rule, they do not confirm it. No rule here has been tested by th
 | Abdulhai et al., arXiv:2603.18161 (review, 2026-11) | meaning check on claim words; meaning review after the guard | claims, conditions and uncertainty preserved | cited, not re-read; rule tested on fixed cases only |
 | Baumler et al., ACL 2026; Agarwal et al., arXiv:2409.11360 (review, 2026-11) | cumulative-use report; voice notes on stance and directness | voice judgement; unneeded edits | cited, not re-read; report only |
 | Shan et al., EMNLP 2026; Miletić & Falk, LREC 2026 (review, 2026-11) | the separation in this file | all of section 2 | cited, not re-read; protocol not run |
+| Barba, SciWrite; Sainani (design.md §9) | delivery review lens; its findings applied only when the author accepts them | findings a careful editor agrees with; share accepted; voice judgement after accepted ones | added in v0.8; untested |

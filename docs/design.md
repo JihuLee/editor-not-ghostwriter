@@ -98,6 +98,29 @@ the original and reports that review apart from the guard's result. Embedding si
 a test of meaning. How often these checks block a correct grammar fix is measured on a small fixed set
 (see [evaluation.md](evaluation.md)), not in real use.
 
+## 9. Delivery: suggestions, measured against the author
+
+A draft with no AI tells can still be hard to read: the main verb sits far from its subject, paragraphs
+open with "There are", the abstract never states what was found. SciWrite [SciWrite] turns the editing
+principles of Sainani's *Writing in the Sciences* course [Sainani] and Nature's guide to summary
+paragraphs into a review skill. The built skill takes a short, reworded set of those principles as a
+fourth review lens, delivery, credited in `reviewer_prompt.md` under SciWrite's CC BY 4.0 licence.
+
+Three things change on the way in. First, the reviewer is given the author's habits from
+`author_voice.md`, told that they are not problems, and asked to report a general rule (active voice,
+shorter phrases) only where breaking it costs the reader; applied to everyone alike, such rules would
+move every author toward one style, which this skill exists to prevent. Second, delivery findings are
+suggestions. An unattended run lists them and changes nothing; an accepted one is applied after the
+guard, as a separate pass with its own diff, because most of them restructure a sentence and the guard
+would revert or flag that as an ordinary edit. Third, the checks on what each section must do (an
+introduction that states the gap, an abstract that states the result) run only when the draft looks like
+a research paper: it has an abstract or the usual sections, or the author named a venue. The author does
+not declare a mode. SciWrite's pass on numbers and citations is left out, since the claims-evidence lens
+and the guard cover it.
+
+Whether the lens finds what a careful editor would, and how many of its suggestions authors accept, has
+not been measured.
+
 ## References
 
 - [ARIS] wanshuiyin/Auto-claude-code-research-in-sleep, `auto-paper-improvement-loop` skill (MIT).
@@ -124,5 +147,10 @@ a test of meaning. How often these checks block a correct grammar fix is measure
 - [Review Arcade] Review Arcade: on the human alignment and gameability of LLM reviews. arXiv:2605.28897.
 - [Rhetoric reward-hacking] How can rhetoric reward-hack AI reviewers? Dissecting rhetorical sensitivity in
   AI-based peer review. arXiv:2608.08975.
+- [Sainani] K. Sainani. Writing in the Sciences. Stanford University (online course).
+  https://www.coursera.org/learn/sciwrite
+- [SciWrite] L. A. Barba (2026). SciWrite: an Agent Skill for reviewing the writing quality of scientific
+  manuscripts. Version 1.0.0. doi:10.5281/zenodo.23728600. https://github.com/labarba/sciwrite (skill text
+  CC BY 4.0).
 - [Sharimbayev and Kadyrov] Detection of AI-obfuscated, AI-refined, and humanized AI-generated text: a
   systematic review. Engineering, Technology & Applied Science Research 16(4), 2026.

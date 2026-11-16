@@ -19,7 +19,7 @@ build_skill.py ──► <name>/  (your private skill)  ──► validate_skill
 
 Using <name> on a draft:
   lint (AI tells, your slips, drift from your baseline)
-  → three independent reviews that find but do not fix
+  → four independent reviews that find but do not fix (the fourth, delivery, only suggests)
   → minimal edits
   → diff_guard.py keeps clean edits, reverts the rest, lists the doubtful ones
   → merged draft + change report

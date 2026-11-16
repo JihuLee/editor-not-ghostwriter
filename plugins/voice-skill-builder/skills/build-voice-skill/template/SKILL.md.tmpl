@@ -1,6 +1,6 @@
 ---
 name: {{name}}
-description: Revise {{author_possessive}} own paper, manuscript or other long-form draft (a .tex, .md or .txt file) as a minimal-edit copy editor and reviewer, calibrated to their measured writing style, so the result still reads as their own writing and not as AI text. Use when the user wants to revise, proofread, tighten, fix grammar in, or answer reviewer comments on such a draft, or asks to make it sound less AI-generated or more like their own style. Not for Word or Google Docs files, emails, or other short texts.
+description: Revise {{author_possessive}} own paper, manuscript or other long-form draft (a .tex, .md or .txt file) as a minimal-edit copy editor and reviewer, calibrated to their measured writing style, so the result still reads as their own writing and not as AI text. Use when the user wants to revise, proofread, tighten, fix grammar in, answer reviewer comments on such a draft, or review how clearly it reads, or asks to make it sound less AI-generated or more like their own style. Not for Word or Google Docs files, emails, or other short texts.
 ---
 
 # Voice-preserving revision for {{author}}
@@ -51,6 +51,10 @@ short question if it is not already clear: what to work on (the whole draft, som
 reviewer comments) and the venue. If nobody is there to answer, default to: grammar and clarity fixes on
 all prose, no content changes.
 
+Treat the draft as a research paper when it has an abstract or the usual sections, or the author named a
+venue: the delivery review (step 2) then also checks what each section and the abstract must do. For
+other writing it looks at sentences and paragraphs only. Ask only when this is unclear and it matters.
+
 "Must not read as AI-written" means two things, in this order: your own edits must add no AI tells
 (always), and passages that already read as AI text are reported to the author with the reasons (step 1).
 Edit those only when the author explicitly asks, and then remove the specific tells with minimal
@@ -83,13 +87,14 @@ Use the report three ways:
 
 ### 2. Review: find, don't fix
 
-Run three independent reviews with `references/reviewer_prompt.md`, one per lens: math and notation,
-claims versus evidence, clarity and grammar. Fill in the venue and the scope. If a subagent tool is
-available, give each lens its own fresh subagent with only the file paths, venue, scope and lens. Never
-pass earlier reviews, fix lists, or "we already fixed X": a reviewer told what changed rates the text
-higher without it being better.
+Run independent reviews with `references/reviewer_prompt.md`, one per lens: math and notation, claims
+versus evidence, clarity and grammar, and delivery (skip delivery for a proofreading-only or lint-only
+run). Fill in the venue and the scope, and for delivery the author's habits from `author_voice.md`. If a
+subagent tool is available, give each lens its own fresh subagent with only the file paths, venue, scope
+and lens (and, for delivery, the habits). Never pass earlier reviews, fix lists, or "we already fixed X":
+a reviewer told what changed rates the text higher without it being better.
 
-Without subagents the reviews cannot be fully independent, so limit the damage: do all three lens passes
+Without subagents the reviews cannot be fully independent, so limit the damage: do all lens passes
 before making any edit, re-read the in-scope text for each pass, and skip the second review round in
 step 6 (whoever made the edits cannot judge them; the guard is the check instead).
 
@@ -104,6 +109,11 @@ leave claims, math and missing-content issues as notes for the author, because f
 content and the author's judgment. The test for "grammar or clarity": the fix leaves what the sentence
 claims unchanged. A one-word fix that changes a claim or a stated quantity ("increases" versus "decreases",
 "upper bound" versus "lower bound", "outperforms" versus "matches") is a content fix; note it for the author.
+
+Delivery findings are suggestions. In an unattended run, list them and change nothing. Apply only those the
+author accepts, the way a standing request that moves content is applied ("Standing requests" below): after
+the guard, as a separate pass with its own diff, reusing the author's words, with every number and claim
+checked unchanged.
 
 ### 4. Edit minimally
 

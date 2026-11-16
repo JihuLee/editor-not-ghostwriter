@@ -88,6 +88,17 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(len(prof["watchlist"]), 3)
         self.assertEqual(prof["skill"]["name"], "demo-voice")
 
+    def test_delivery_lens_and_attribution(self):
+        prompt = (self.out / "references" / "reviewer_prompt.md").read_text(encoding="utf-8")
+        self.assertIn("- **delivery**:", prompt)
+        self.assertIn("HABITS", prompt)
+        for credit in ["SciWrite by Lorena A. Barba", "https://github.com/labarba/sciwrite", "CC BY 4.0",
+                       "https://creativecommons.org/licenses/by/4.0/", "shortened"]:
+            self.assertIn(credit, prompt)
+        skill = (self.out / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Delivery findings are suggestions", skill)
+        self.assertIn("research paper", skill)
+
     def test_validate_passes(self):
         r = run(BUILDER / "validate_skill.py", self.out, "--samples", *SAMPLES)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
