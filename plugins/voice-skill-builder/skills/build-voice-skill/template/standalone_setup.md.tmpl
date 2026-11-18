@@ -1,0 +1,22 @@
+This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} own samples ({{n_words}} words).
+It is a standalone build: it holds both the editing workflow and the author's measured style, so a newer
+version of the workflow reaches it only through a rebuild with the build-voice-skill builder.
+
+## Paths and working folder
+
+- `SKILL_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
+  folder when the skill loads (a text substitution, not an environment variable). Codex and claude.ai do
+  not: there, use the folder this SKILL.md was loaded from, and write it in place of `${CLAUDE_SKILL_DIR}`
+  in the commands below.
+- `ENGINE_DIR` and `VOICE_DIR` both mean `SKILL_DIR` in this skill.
+- `PROFILE` is `SKILL_DIR/references/author_profile.json`.
+- `RUN` is a scratch folder for this revision, outside the user's repository, for example
+  `~/voice-skill-work/runs/<draft-name>/`. Every file this workflow writes (lint.md, issues.md, edited
+  copies, guard.md, merged files) goes there; never modify the user's original files.
+
+Shell variables usually do not survive from one command to the next in an agent's shell, so set them at
+the start of every command, or write the full paths in:
+
+```
+SKILL_DIR="${CLAUDE_SKILL_DIR}"; ENGINE_DIR="$SKILL_DIR"; VOICE_DIR="$SKILL_DIR"; PROFILE="$SKILL_DIR/references/author_profile.json"; RUN="$HOME/voice-skill-work/runs/draft"; mkdir -p "$RUN"
+```

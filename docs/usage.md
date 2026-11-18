@@ -14,10 +14,10 @@ your samples (.tex .md .txt .docx)
    └─ Claude reads the samples ── voice notes: habits to keep, slips a pattern can't catch
    │
    ▼
-build_skill.py ──► <name>/  (your private skill)  ──► validate_skill.py (self-tests on your own text)
-                                                   ──► install_skill.py (Claude Code, Codex) / package_skill.py (claude.ai)
+build_skill.py ──► <name>/  (your private voice skill: data only)  ──► validate_skill.py (self-tests on your own text)
+                                                                   ──► install_skill.py (Claude Code, Codex) / package_skill.py (claude.ai)
 
-Using <name> on a draft:
+Using <name> on a draft: <name> loads revise-in-voice (the workflow, from the plugin) with your data
   lint (AI tells, your slips, drift from your baseline)
   → four independent reviews that find but do not fix (the fourth, delivery, only suggests)
   → minimal edits
@@ -28,11 +28,30 @@ Using <name> on a draft:
 The builder needs nothing but Python 3.9+ and its standard library. The scripts refuse fewer than 3,000
 words of prose; 8,000 words or more gives steadier numbers.
 
+## Your skill and the plugin
+
+The plugin has two skills. `build-voice-skill` builds your voice skill; `revise-in-voice` is the editing
+workflow with its scripts (lint, guard, reviewer prompt). Your voice skill holds only your data
+(`author_profile.json`, `author_voice.md`, `author_stats.md`) and a short `SKILL.md` that loads
+`revise-in-voice`. So:
+
+- **A plugin update reaches your skill by itself.** In claude.ai, turn on Sync automatically for the
+  marketplace (or use Check for updates); in Claude Code, enable auto-update for the marketplace or run
+  `npx skills update`. No rebuild, no new upload.
+- **You rebuild and upload only when your data changes**: new samples, or a standing request added.
+- **Keep the plugin installed** wherever you use your voice skill. Without it, the voice skill says what
+  to install and does not edit.
+- **Standalone builds** (`build_skill.py --standalone`) copy the workflow and scripts into the skill, for
+  places where the plugin cannot be installed. They do not follow plugin updates; rebuild them.
+
+A voice skill built before version 0.9 is a standalone build. Rebuild it once with `--from-skill` (no
+samples needed) to turn it into one that follows the plugin.
+
 ## Scripts only
 
 ```bash
 git clone https://github.com/JihuLee/editor-not-ghostwriter && cd editor-not-ghostwriter
-ENGINE=plugins/voice-skill-builder/skills/build-voice-skill/template/scripts
+ENGINE=plugins/voice-skill-builder/skills/revise-in-voice/scripts
 BUILDER=plugins/voice-skill-builder/skills/build-voice-skill/scripts
 WORK=~/voice-skill-work
 
@@ -44,7 +63,11 @@ python3 $BUILDER/build_skill.py --name my-voice --profile $WORK/profile.json \
     --notes $WORK/voice_notes.md --watchlist $WORK/watchlist.json --out $WORK/build/my-voice
 python3 $BUILDER/validate_skill.py $WORK/build/my-voice --samples ~/papers
 python3 $BUILDER/install_skill.py $WORK/build/my-voice     # add --agent codex for Codex
+python3 $ENGINE/voice_rules.py --profile $WORK/build/my-voice/references/author_profile.json
+python3 $ENGINE/ai_tell_lint.py draft.tex --profile $WORK/build/my-voice/references/author_profile.json
 ```
+
+Without an agent, add `--standalone` to the build if you want the skill folder to carry the scripts too.
 
 Each script that takes samples accepts files, folders or both. A folder means every `.tex`, `.md`, `.txt`
 and `.docx` file inside it, subfolders included; hidden folders and Word lock files are skipped.
@@ -108,9 +131,13 @@ plugins/voice-skill-builder/
     SKILL.md                             the builder workflow Claude follows
     references/                          interview, voice-notes guide, watchlist format
     scripts/                             find_slips, build_skill, validate_skill, package_skill, install_skill
-    template/                            the skill that gets built: SKILL.md.tmpl, references/, scripts/
+    template/                            SKILL.md of a voice skill; setup block of a standalone build
+  skills/revise-in-voice/
+    SKILL.md                             the editing workflow every voice skill loads
+    references/reviewer_prompt.md        the review lenses
+    scripts/                             style_profile, voice_rules, ai_tell_lint, diff_guard, extractors
 examples/demo-author/                    fictional samples, draft and build inputs
 tests/                                   unittest suite (standard library only)
 docs/design.md                           why it works this way, with sources
-tools/make_release.py                    zips the builder for claude.ai
+tools/make_release.py                    zips the whole plugin for claude.ai's Upload plugin
 ```

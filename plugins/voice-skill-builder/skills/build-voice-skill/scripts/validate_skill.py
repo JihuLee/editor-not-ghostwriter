@@ -8,7 +8,9 @@ usage:
 
 Structure: frontmatter rules (name = folder, kebab-case, at most 64 characters, no reserved
 words; description at most 1,024 characters, no angle brackets), referenced files exist,
-no unfilled placeholders, scripts compile, the profile and watchlist load.
+no unfilled placeholders, scripts compile, the profile and watchlist load. A voice skill (the
+default build) also needs the revise-in-voice skill: the check looks for it next to the builder
+and reads the profile with its voice_rules.py. A standalone build is tested with its own scripts.
 
 Self-tests (with --samples): the extractor reads every sample cleanly; the lint finds no hard
 tells in the author's own text; every watchlist entry occurs in the samples; the guard reverts
@@ -25,6 +27,9 @@ import re
 import sys
 import tempfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from enginepath import ENGINE_NAME, find_engine   # noqa: E402
 
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -86,13 +91,17 @@ def check_structure(skill: Path, rep: Report):
         if re.search(r"\{\{[a-z_]+\}\}", t) or re.search(r"<!--\s*FILL", t, re.I):
             leftovers.append(f.name)
     rep.add("no unfilled placeholders", not leftovers, ", ".join(leftovers))
+    standalone = (skill / "scripts").is_dir()
+    if not standalone:
+        rep.add(f"SKILL.md hands the workflow to {ENGINE_NAME}", ENGINE_NAME in text)
     bad = []
     for f in sorted((skill / "scripts").glob("*.py")):
         try:
             py_compile.compile(str(f), doraise=True, cfile=str(Path(tempfile.gettempdir()) / (f.name + "c")))
         except py_compile.PyCompileError as e:
             bad.append(f"{f.name}: {e.msg}")
-    rep.add("scripts compile", not bad, "; ".join(bad))
+    if standalone:
+        rep.add("scripts compile", not bad, "; ".join(bad))
     prof = skill / "references" / "author_profile.json"
     try:
         pr = json.loads(prof.read_text(encoding="utf-8"))
@@ -100,6 +109,16 @@ def check_structure(skill: Path, rep: Report):
         rep.add("author_profile.json loads", False, str(e))
         return None
     rep.add("author_profile.json loads", True)
+    engine = skill if standalone else find_engine(required=False)
+    if engine is None:
+        rep.add(f"{ENGINE_NAME} skill found", False, "install the voice-skill-builder plugin; self-tests need it")
+    elif (engine / "scripts" / "voice_rules.py").exists():      # standalone builds before 0.9 lack it
+        sys.path.insert(0, str(engine / "scripts"))
+        import voice_rules   # noqa: E402
+        ok, message = voice_rules.compatibility(pr)
+        rep.add("profile readable by the workflow", ok, message, level="error" if not ok else "warn")
+        if ok and message:
+            rep.add("profile format is current", False, message, level="warn")
     n_words = pr.get("n_words", 0)
     rep.add("profile has at least 3,000 words", n_words >= 3000, f"{n_words:,} words",
             level="warn" if n_words >= 1000 else "error")
@@ -138,7 +157,8 @@ def _plain_lines(lines, kinds, fmt):
 
 
 def run_self_tests(skill: Path, pr: dict, samples, rep: Report):
-    sys.path.insert(0, str(skill / "scripts"))
+    engine = skill if (skill / "scripts").is_dir() else find_engine()
+    sys.path.insert(0, str(engine / "scripts"))
     import ai_tell_lint   # noqa: E402
     import diff_guard     # noqa: E402
     import prose          # noqa: E402

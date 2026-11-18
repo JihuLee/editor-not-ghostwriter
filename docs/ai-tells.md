@@ -1,7 +1,7 @@
 # AI tells
 
 What the lint and the guard count as an AI tell, and why. The lists themselves live in
-[`lexicon_en.py`](../plugins/voice-skill-builder/skills/build-voice-skill/template/scripts/lexicon_en.py);
+[`lexicon_en.py`](../plugins/voice-skill-builder/skills/revise-in-voice/scripts/lexicon_en.py);
 keep this page in step with them. Each built skill stores the author's own rates in
 `author_profile.json`, and every rule below is applied relative to them.
 

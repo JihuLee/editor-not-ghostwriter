@@ -11,6 +11,11 @@ of the draft: it finds problems, makes the smallest fix, and a guard script reve
 tells or changes math, numbers, citations or theorem statements. Everything is judged against a measured
 profile of the author's own writing, so their habits are protected and only their slips get fixed.
 
+The built skill holds only the author's data: the profile, recurring slips, voice notes and standing
+requests. The editing workflow and its scripts are the `revise-in-voice` skill of this same plugin, which
+the voice skill loads when it runs. A plugin update therefore improves every voice skill without a
+rebuild or a new upload; the user rebuilds only when their own data changes.
+
 Steps 3, 4, 6, 7 and 8 run scripts. Steps 4 and 5 also need careful reading of the samples, which is the
 part no script can do.
 
@@ -20,7 +25,10 @@ part no script can do.
   folder when the skill loads (a text substitution, not an environment variable). Codex and claude.ai do
   not: there, use the folder this SKILL.md was loaded from, and write it in place of `${CLAUDE_SKILL_DIR}`
   in the commands below.
-- `ENGINE` is `SKILL_DIR/template/scripts`.
+- `ENGINE` is the `scripts` folder of the `revise-in-voice` skill, installed next to this one:
+  `SKILL_DIR/../revise-in-voice/scripts`. If that folder is missing, find the `revise-in-voice` skill
+  among the installed skills; if it is not installed, ask the user to install the whole plugin (see
+  step 8) before going on.
 - `WORK` is a working folder outside any git repository, by default `~/voice-skill-work`, so nothing
   private gets committed by accident.
 
@@ -28,7 +36,7 @@ Shell variables usually do not survive from one command to the next in an agent'
 the start of every command, or write the full paths in. For example:
 
 ```
-SKILL_DIR="${CLAUDE_SKILL_DIR}"; ENGINE="$SKILL_DIR/template/scripts"; WORK="$HOME/voice-skill-work"; mkdir -p "$WORK"
+SKILL_DIR="${CLAUDE_SKILL_DIR}"; ENGINE="$SKILL_DIR/../revise-in-voice/scripts"; WORK="$HOME/voice-skill-work"; mkdir -p "$WORK"
 ```
 
 The scripts need only Python 3.9+ and its standard library (use `python` if `python3` is missing).
@@ -110,6 +118,10 @@ python3 "$SKILL_DIR/scripts/build_skill.py" --name NAME --author "LABEL" \
 
 `NAME` and `LABEL` come from the interview. Add `--force` to replace an earlier build of the same name.
 
+This builds a voice skill that needs the `revise-in-voice` skill wherever it runs. Add `--standalone` only
+when the user wants a skill that works without the plugin (for example, to use it where the plugin
+cannot be installed): it copies the workflow and scripts in, and then changes only when rebuilt.
+
 If the author gave standing requests (interview question 5), write them to `$WORK/requests.md` as a short
 bullet list in their words and pass `--requests`. Check each one first. A request about what to look for,
 what to report or where content belongs works well. One that asks for more rewriting than the guard allows
@@ -133,6 +145,11 @@ Every FAIL must be fixed before installing; WARN lines need a judgment call:
 
 ## 8. Install
 
+The voice skill works wherever the voice-skill-builder plugin is installed too. If the user installed only
+this builder skill by hand, ask them to install the whole plugin: in claude.ai, Customize > Plugins > Add >
+Add marketplace with `JihuLee/editor-not-ghostwriter`, then add Voice Skill Builder and turn on Sync
+automatically; in Claude Code or Codex, `npx skills add JihuLee/editor-not-ghostwriter -g` (both skills).
+
 - **Claude Code**: `python3 "$SKILL_DIR/scripts/install_skill.py" "$WORK/build/NAME"` copies it to
   `~/.claude/skills/NAME/` (add `--scope project` for `./.claude/skills/`). To replace an installed version,
   add `--force`; the old copy goes to `~/.claude/skill-backups/`. Then `/skills` should list it, and
@@ -142,7 +159,8 @@ Every FAIL must be fixed before installing; WARN lines need a judgment call:
   (restart Codex if it does not), and `$NAME` followed by what to revise runs it.
 - **claude.ai**: `python3 "$SKILL_DIR/scripts/package_skill.py" "$WORK/build/NAME" -o "$WORK/dist"` writes
   `NAME.zip` (folder `NAME/` at the top, as claude.ai requires). The user uploads it under Customize >
-  Skills and turns it on. If you can hand files to the user in the chat, pass `--ext skill` and send the
+  Skills and turns it on. This upload is needed again only when the voice skill is rebuilt (new samples
+  or standing requests), never for a plugin update. If you can hand files to the user in the chat, pass `--ext skill` and send the
   `.skill` file; its card offers a "Save skill" button where the organization allows it.
 - If another skill with the same purpose is installed (an older voice skill, or a generic revision skill),
   tell the user: two skills with near-identical descriptions compete for the same requests. Suggest
@@ -159,9 +177,17 @@ section (`/NAME` in Claude Code, `$NAME` in Codex).
 
 ## Updating the skill
 
-Rerun steps 3 to 8 with all samples, old and new. Reuse `watchlist.json`, `voice_notes.md` and
-`config.json`, refreshing the watchlist counts from a new `find_slips.py` run and editing the notes where
-the new samples change the picture. Build and install with `--force`.
+A new version of the plugin needs nothing from the user: claude.ai syncs it (with Sync automatically on,
+or Check for updates), Claude Code updates it with the plugin's auto-update or `npx skills update`, and
+every voice skill uses it the next time it runs. A standalone build is the exception: rebuild it.
+
+A voice skill built before version 0.9 carries its own copy of an older workflow. Rebuilding it from its
+own files, as below without `--add-request`, turns it into a voice skill that follows the plugin; upload
+or install the result once more.
+
+To take in new samples, rerun steps 3 to 8 with all samples, old and new. Reuse `watchlist.json`,
+`voice_notes.md` and `config.json`, refreshing the watchlist counts from a new `find_slips.py` run and
+editing the notes where the new samples change the picture. Build and install with `--force`.
 
 To add, change or remove a standing request, no samples are needed: rebuild from the skill itself, which
 keeps its profile, watchlist, settings, notes and requests in its own files. Find its folder (Claude Code
@@ -174,7 +200,8 @@ python3 "$SKILL_DIR/scripts/build_skill.py" --from-skill SKILL_FOLDER --add-requ
 ```
 
 To change or remove requests, write the full list to `$WORK/requests.md` and pass `--requests` instead of
-`--add-request`. Validate (with `--samples` if they are at hand) and install or package as in step 8.
+`--add-request`. Rebuilds are voice skills unless `--standalone` is given again. Validate (with
+`--samples` if they are at hand) and install or package as in step 8.
 
 ## Privacy
 

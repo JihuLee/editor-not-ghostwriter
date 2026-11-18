@@ -4,9 +4,9 @@ The engine is English-only today. The parts that depend on the language are smal
 
 | File | What is English-specific |
 |---|---|
-| `template/scripts/lexicon_en.py` | tier-A/tier-B words, AI-favoured openers, connectives, hedges, intensifiers, contractions, passive pattern, function words |
-| `template/scripts/textcore.py` | `WORD_RE` (Latin letters), the abbreviation list, the sentence-boundary pattern (`.`, `!`, `?` followed by a capital) |
-| `scripts/esl_candidates.py` | usage-slip candidates for English as a second language |
+| `revise-in-voice/scripts/lexicon_en.py` | tier-A/tier-B words, AI-favoured openers, connectives, hedges, intensifiers, contractions, passive pattern, function words |
+| `revise-in-voice/scripts/textcore.py` | `WORD_RE` (Latin letters), the abbreviation list, the sentence-boundary pattern (`.`, `!`, `?` followed by a capital) |
+| `build-voice-skill/scripts/esl_candidates.py` | usage-slip candidates for English as a second language |
 
 To add a language:
 

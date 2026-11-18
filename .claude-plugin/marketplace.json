@@ -8,7 +8,7 @@
     {
       "name": "voice-skill-builder",
       "source": "./plugins/voice-skill-builder",
-      "description": "Turns samples of your own writing into a private skill that edits your drafts minimally and keeps them sounding like you."
+      "description": "Turns samples of your own writing into a private skill that edits your drafts minimally and keeps them sounding like you. The editing workflow updates with the plugin."
     }
   ]
 }

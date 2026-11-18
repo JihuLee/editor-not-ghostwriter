@@ -10,6 +10,10 @@ claude, project  -> ./.claude/skills/<name>/   (this repository only)
 codex,  personal -> ~/.agents/skills/<name>/
 codex,  project  -> ./.agents/skills/<name>/
 
+A voice skill (the default build) needs the revise-in-voice skill of the voice-skill-builder
+plugin wherever it is used; the script says so when it cannot find it next to the new skill or
+next to this builder. A standalone build carries its own copy.
+
 Do not commit a project install if the repository is public, since the skill holds statistics
 and short quotes from your writing.
 
@@ -22,7 +26,11 @@ from __future__ import annotations
 import argparse
 import datetime
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from enginepath import ENGINE_NAME, find_engine   # noqa: E402
 
 AGENT_DIRS = {"claude": ".claude", "codex": ".agents"}     # folder that holds skills/ for each agent
 
@@ -64,6 +72,12 @@ def main():
     target = install(a.skill_dir, a.scope, a.dest, a.force, a.agent)
     name = target.name
     print(f"installed: {target}")
+    if not (target / "scripts").is_dir() and not (target.parent / ENGINE_NAME / "SKILL.md").exists():
+        where = find_engine(required=False)
+        print(f"This voice skill hands the editing to the {ENGINE_NAME} skill, which is not next to it in "
+              f"{target.parent}" + (f" (the builder's copy is in {where})" if where else "") + ". Keep the "
+              "voice-skill-builder plugin installed for this agent: `npx skills add "
+              "JihuLee/editor-not-ghostwriter -g`, or the plugin from the same marketplace.")
     if a.dest:
         print("This folder is not one Claude Code or Codex scans by default; point your tool at it or copy "
               "the skill.")

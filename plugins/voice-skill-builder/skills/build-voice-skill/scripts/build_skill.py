@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble a personal voice-preserving revision skill from the template.
+"""Assemble a personal voice skill from an author's profile, notes, slips and requests.
 
 usage:
   python build_skill.py --name alex-voice --author "Alex" \\
@@ -10,15 +10,20 @@ usage:
   python build_skill.py --from-skill ~/.claude/skills/alex-voice --add-request "..." \\
       --out work/build/alex-voice [--force]
 
+By default the skill holds only the author's data (profile, voice notes, slips, requests) and hands
+the editing to the revise-in-voice skill of the same plugin, so a newer plugin improves every voice
+skill without a rebuild. --standalone copies the workflow and scripts in as well, for a skill that
+works without the plugin; it then changes only when rebuilt.
+
 --requests is a markdown file of the author's standing requests (lasting preferences such as
 "keep figure captions short"); --add-request appends one, and may be repeated. --from-skill
 rebuilds from a skill this script built earlier, reading its profile, watchlist, settings,
 voice notes and requests from its own files, so no samples are needed; any other input given
 replaces the one read from the skill.
 
-Produces <out>/SKILL.md, references/ (author_profile.json, author_voice.md, author_stats.md,
-reviewer_prompt.md) and scripts/. The folder name equals the
-skill name, as claude.ai and Claude Code require. Run validate_skill.py on the result next.
+Produces <out>/SKILL.md and references/ (author_profile.json, author_voice.md, author_stats.md);
+--standalone adds references/reviewer_prompt.md and scripts/. The folder name equals the skill name,
+as claude.ai and Claude Code require. Run validate_skill.py on the result next.
 """
 from __future__ import annotations
 
@@ -33,17 +38,27 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE.parent / "template"
-sys.path.insert(0, str(TEMPLATE / "scripts"))
+sys.path.insert(0, str(HERE))
+from enginepath import use_engine   # noqa: E402
+ENGINE = use_engine()
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.8.0"
+BUILDER_VERSION = "0.9.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
 NOTES_HEADING = "## Notes from reading the samples"
 REQUESTS_HEADING = "## Standing requests from the author"
 NO_NOTES = "_No notes were written for this build._"
+SETUP_START, SETUP_END = "<!-- setup:start -->", "<!-- setup:end -->"
+ENGINE_TITLE = "# Voice-preserving revision\n"
+DESCRIPTION = ("Revise {who} own paper, manuscript or other long-form draft (a .tex, .md or .txt file) as a "
+               "minimal-edit copy editor and reviewer, calibrated to their measured writing style, so the result "
+               "still reads as their own writing and not as AI text. Use when the user wants to revise, proofread, "
+               "tighten, fix grammar in, answer reviewer comments on such a draft, or review how clearly it reads, "
+               "or asks to make it sound less AI-generated or more like their own style. Not for Word or Google "
+               "Docs files, emails, or other short texts.")
 
 
 def check_name(name: str):
@@ -61,13 +76,6 @@ def possessive(label: str) -> str:
     return label + ("'" if label.endswith("s") else "'s")
 
 
-def _fmt_list(items, quote=True):
-    items = [f"\"{x}\"" if quote else x for x in items]
-    if not items:
-        return ""
-    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
-
-
 def render(text: str, values: dict) -> str:
     for k, v in values.items():
         text = text.replace("{{" + k + "}}", str(v))
@@ -75,52 +83,6 @@ def render(text: str, values: dict) -> str:
     if left:
         raise SystemExit(f"template placeholders left unfilled: {sorted(set(left))}")
     return text
-
-
-def layout_rule(pr) -> str:
-    osl = (pr.get("layout") or {}).get("one_sentence_per_line")
-    if osl is None:
-        return ("Keep the source layout: the same line breaks and paragraph breaks. Edit in place; do not "
-                "reflow or re-wrap paragraphs.")
-    if osl >= 0.8:
-        return ("Keep the source layout: one sentence per line (the author's habit), the same line breaks and "
-                "paragraph breaks. Edit inside lines.")
-    return ("Keep the source layout: the author hard-wraps paragraphs, so edit words in place and do not re-wrap "
-            "the rest of the paragraph, even when a line gets longer or shorter.")
-
-
-def device_rules(pr) -> tuple:
-    rules = tl.Rules(pr)
-    never = []
-    if "em_dash" in rules.hard_devices:
-        never.append("em dashes (`---` in LaTeX)")
-    if "contraction" in rules.hard_devices:
-        never.append("contractions")
-    if "exclamation" in rules.hard_devices:
-        never.append("exclamation marks")
-    dash = ("" if "em_dash" in rules.hard_devices else
-            "\n- The author does use em dashes; keep them at the draft's existing rate and never add one to a "
-            "sentence that reads fine without it.")
-    return never, dash
-
-
-def openers_to_avoid(pr, limit=8, config=None):
-    merged = dict(pr)
-    merged["config"] = config or pr.get("config") or {}
-    avoid = tl.Rules(merged).avoid_openers
-    return [o[0].upper() + o[1:] + "," for o in avoid[:limit]]
-
-
-def frozen_note(pr, config) -> str:
-    envs = set((pr.get("latex") or {}).get("theorem_envs_declared") or [])
-    envs |= set(((config or {}).get("latex") or {}).get("frozen_envs_extra") or [])
-    unfrozen = set(((config or {}).get("latex") or {}).get("unfrozen_envs") or [])
-    parts = []
-    if envs:
-        parts.append("the author's theorem-like environments (" + ", ".join(f"`{e}`" for e in sorted(envs)) + ")")
-    if unfrozen:
-        parts.append("except " + ", ".join(f"`{e}`" for e in sorted(unfrozen)) + ", which the author chose to keep editable")
-    return (" Frozen LaTeX environments include " + "; ".join(parts) + ".") if parts else ""
 
 
 def _n(x) -> str:
@@ -291,6 +253,21 @@ def gather_requests(base: str, extra) -> str:
     return text
 
 
+def standalone_skill_md(values: dict) -> str:
+    """The engine's SKILL.md with the author's frontmatter, title and a one-folder setup block."""
+    text = (ENGINE / "SKILL.md").read_text(encoding="utf-8")
+    if not text.startswith("---\n") or text.count(SETUP_START) != 1 or text.count(SETUP_END) != 1 \
+            or ENGINE_TITLE not in text:
+        raise SystemExit(f"{ENGINE / 'SKILL.md'} lacks the frontmatter, title or setup markers a standalone build needs")
+    body = text[text.index("\n---\n", 4) + 5:]
+    head, _, rest = body.partition(SETUP_START)
+    _, _, tail = rest.partition(SETUP_END)
+    setup = render((TEMPLATE / "standalone_setup.md.tmpl").read_text(encoding="utf-8"), values).rstrip("\n")
+    head = head.replace(ENGINE_TITLE, f"# Voice-preserving revision for {values['author']}\n", 1)
+    front = f"---\nname: {values['name']}\ndescription: {values['description']}\n---\n"
+    return render(front + head + setup + tail, {})
+
+
 def build(args):
     old = read_built_skill(args.from_skill) if args.from_skill else {}
     args.name = args.name or old.get("name")
@@ -323,21 +300,24 @@ def build(args):
     if out.exists():
         if not args.force:
             raise SystemExit(f"{out} exists; pass --force to replace it")
-        old = out / "SKILL.md"
-        if not old.exists() or f"name: {args.name}" not in old.read_text(encoding="utf-8", errors="replace"):
+        prev = out / "SKILL.md"
+        if not prev.exists() or f"name: {args.name}" not in prev.read_text(encoding="utf-8", errors="replace"):
             raise SystemExit(f"refusing to replace {out}: it does not look like a previous build of '{args.name}'")
         shutil.rmtree(out)
     (out / "references").mkdir(parents=True)
-    shutil.copytree(TEMPLATE / "scripts", out / "scripts", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    for f in (TEMPLATE / "references").glob("*.md"):
-        shutil.copy2(f, out / "references" / f.name)
+    kind = "standalone" if args.standalone else "voice"
+    if args.standalone:
+        shutil.copytree(ENGINE / "scripts", out / "scripts", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        for f in (ENGINE / "references").glob("*.md"):
+            shutil.copy2(f, out / "references" / f.name)
 
     built = datetime.date.today().isoformat()
     author = args.author or "the author"
     merged = dict(pr)
     merged["watchlist"] = watchlist
     merged["config"] = config
-    merged["skill"] = {"name": args.name, "author": author, "built": built, "builder_version": BUILDER_VERSION}
+    merged["skill"] = {"name": args.name, "author": author, "built": built, "builder_version": BUILDER_VERSION,
+                       "kind": kind}
     (out / "references" / "author_profile.json").write_text(json.dumps(merged, indent=1, ensure_ascii=False),
                                                            encoding="utf-8")
     (out / "references" / "author_stats.md").write_text(style_profile.to_markdown(pr), encoding="utf-8")
@@ -347,23 +327,25 @@ def build(args):
         voice += "\n" + REQUESTS_HEADING + "\n\n" + requests + "\n"
     (out / "references" / "author_voice.md").write_text(voice, encoding="utf-8")
 
-    never, dash = device_rules(pr)
     values = {
         "name": args.name,
+        "description": DESCRIPTION.format(who=possessive(author)),
         "author": author,
         "author_possessive": possessive(author),
+        "author_title": possessive(author)[0].upper() + possessive(author)[1:],
         "n_sources": len(pr["sources"]),
         "n_words": f"{pr['n_words']:,}",
         "built": built,
-        "layout_rule": layout_rule(pr),
-        "dash_rule": dash,
-        "never_devices": (", " + ", ".join(never)) if never else "",
-        "avoid_openers": _fmt_list(openers_to_avoid(pr, config=config)),
-        "frozen_note": frozen_note(pr, config),
     }
-    skill_md = render((TEMPLATE / "SKILL.md.tmpl").read_text(encoding="utf-8"), values)
+    if args.standalone:
+        skill_md = standalone_skill_md(values)
+    else:
+        skill_md = render((TEMPLATE / "voice_skill.md.tmpl").read_text(encoding="utf-8"), values)
     (out / "SKILL.md").write_text(skill_md, encoding="utf-8")
-    print(f"built skill '{args.name}' in {out}")
+    print(f"built {'standalone ' if args.standalone else ''}skill '{args.name}' in {out}")
+    if not args.standalone:
+        print("It uses the revise-in-voice skill of the voice-skill-builder plugin for the editing workflow; "
+              "keep the plugin installed wherever you use this skill.")
     if git_unignored(out):
         print(f"WARNING: {out} is inside a git repository and not ignored. The skill holds statistics and short "
               "quotes from your writing; add it to .gitignore or build outside the repository.")
@@ -384,6 +366,9 @@ def main():
     ap.add_argument("--out", required=True, help="output folder, named after the skill")
     ap.add_argument("--force", action="store_true", help="replace a previous build in --out")
     ap.add_argument("--allow-missing-notes", action="store_true")
+    ap.add_argument("--standalone", action="store_true",
+                    help="copy the editing workflow and scripts into the skill, so it works without the plugin "
+                         "(it then changes only when rebuilt)")
     build(ap.parse_args())
 
 
