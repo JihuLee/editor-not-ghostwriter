@@ -70,13 +70,14 @@ You need about 3,000 words or more of your own writing (`.tex`, `.md`, `.txt` or
 
 ### Claude Code or Codex
 
-**1. Install the builder** (needs Python 3.9+; the installer needs Node.js 22.20+)
+**1. Install the plugin** (needs Python 3.9+; the installer needs Node.js 22.20+)
 
 ```bash
 npx skills add JihuLee/editor-not-ghostwriter -g
 ```
 
-Choose Claude Code, Codex or both when it asks which agents to install to.
+Choose Claude Code, Codex or both when it asks which agents to install to. It installs two skills:
+`build-voice-skill`, the builder, and `revise-in-voice`, the editing workflow your voice skill runs on.
 
 **2. Point it at your writing**, a folder or single files:
 
@@ -90,21 +91,24 @@ shows you the list first so you can leave out anything you didn't write yourself
 
 It asks a few questions, measures your style, finds your recurring slips, builds the skill, tests it on
 your own text and installs it next to the builder (`~/.claude/skills/<name>/` or
-`~/.agents/skills/<name>/`).
+`~/.agents/skills/<name>/`). To get new versions later, run `npx skills update`.
 
 ### Chat users (claude.ai)
 
 For people who use Claude in the browser or the desktop app's chat rather than Claude Code. Nothing to
 install on your computer: the scripts run in claude.ai's own sandbox.
 
-1. Download `build-voice-skill.zip` from the
-   [latest release](https://github.com/JihuLee/editor-not-ghostwriter/releases/latest).
-2. Upload it under **Customize > Skills** and turn it on. Code execution must be enabled.
-3. In a chat, attach your papers and ask Claude to build your voice skill.
-4. Claude hands back `<name>.zip`; upload it the same way.
+1. Under **Customize > Plugins**, choose **Add > Add marketplace** and enter
+   `JihuLee/editor-not-ghostwriter`. Turn on **Sync automatically**, then add **Voice Skill Builder**.
+   Code execution must be enabled.
+2. In a chat, attach your papers and ask Claude to build your voice skill.
+3. Claude hands back `<name>.zip`. Upload it once under **Customize > Skills** and turn it on.
+
+New versions arrive by themselves; you upload again only when you add samples or a standing request. The
+plugin also shows up in Claude Code when you sign in there with the same account.
 
 <details>
-<summary><b>Other ways to install</b>: Claude Code or Codex plugin, plain scripts</summary>
+<summary><b>Other ways to install</b>: Claude Code or Codex plugin, zip upload, plain scripts</summary>
 
 **Claude Code plugin**
 
@@ -114,7 +118,8 @@ install on your computer: the scripts run in claude.ai's own sandbox.
 
 Then start it with `/voice-skill-builder:build-voice-skill` followed by your files. On Claude Code older
 than 2.1.275, run `/plugin marketplace add JihuLee/editor-not-ghostwriter` first, then
-`/plugin install voice-skill-builder@editor-not-ghostwriter`.
+`/plugin install voice-skill-builder@editor-not-ghostwriter`. Marketplaces added this way do not
+auto-update by default; turn it on for this one in the **Marketplaces** tab of `/plugin`.
 
 **Codex plugin**
 
@@ -125,6 +130,10 @@ codex plugin marketplace add JihuLee/editor-not-ghostwriter
 ```
 codex plugin add voice-skill-builder@editor-not-ghostwriter
 ```
+
+**claude.ai without the marketplace**: download `voice-skill-builder.zip` from the
+[latest release](https://github.com/JihuLee/editor-not-ghostwriter/releases/latest) and upload it under
+**Customize > Plugins > Add > Upload plugin**. It does not update itself; repeat this for a new version.
 
 **Plain scripts, no agent**: see [docs/usage.md](docs/usage.md#scripts-only).
 
@@ -140,6 +149,11 @@ codex plugin add voice-skill-builder@editor-not-ghostwriter
 
 In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits),
 `guard.md` (what was kept, what was reverted and why), and a short list of what is left for you.
+
+Your skill holds only your data: your measured style, slips, notes and requests. The editing workflow
+comes from the plugin, so improvements to it reach your skill without a rebuild
+([how this works](docs/usage.md#your-skill-and-the-plugin)). A voice skill built before version 0.9
+carries its own old copy; ask the builder to rebuild it once (no samples needed) and upload the result.
 
 Want it to always do something, such as keeping figure captions short? Add a standing request; the builder
 rebuilds your skill from its own files, so you don't need the samples again:

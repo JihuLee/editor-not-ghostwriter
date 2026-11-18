@@ -121,6 +121,26 @@ and the guard cover it.
 Whether the lens finds what a careful editor would, and how many of its suggestions authors accept, has
 not been measured.
 
+## 10. The workflow ships with the plugin; the voice skill holds data
+
+Up to version 0.8 every voice skill carried its own copy of the workflow and scripts, so each fix to the
+engine reached an author only after a rebuild, and in claude.ai only after a new upload. Now the voice
+skill holds what is the author's own (the profile, recurring slips, voice notes and standing requests) and
+a short `SKILL.md` that loads `revise-in-voice`, the workflow skill of the same plugin. Everything an
+author's profile implies for editing (the layout to keep, devices they never use, openers to avoid,
+frozen environments) is derived from the profile at run time by `voice_rules.py` instead of being written
+into the skill at build time, so a change in how those rules are derived reaches every author too.
+
+The plugin is distributed from this repository as a marketplace, which claude.ai, Claude Code and Codex
+can follow, so an update needs no step from the author. Their data never goes anywhere new: it stays in
+the skill they uploaded or installed themselves.
+
+Two costs come with this. A voice skill no longer works without the plugin, so it says what to install
+when the workflow is missing, and `--standalone` still builds the old self-contained kind. And the engine
+must keep reading profiles written by older builders: the profile carries a format `version`, and
+`voice_rules.py` refuses a newer format with a message to update the plugin and accepts an older one with
+a note that a rebuild brings it up to date.
+
 ## References
 
 - [ARIS] wanshuiyin/Auto-claude-code-research-in-sleep, `auto-paper-improvement-loop` skill (MIT).

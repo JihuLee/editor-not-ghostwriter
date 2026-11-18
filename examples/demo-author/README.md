@@ -16,12 +16,13 @@ Reproduce the build:
 
 ```bash
 B=plugins/voice-skill-builder/skills/build-voice-skill
+E=plugins/voice-skill-builder/skills/revise-in-voice/scripts
 WORK=~/voice-skill-work/demo && mkdir -p $WORK
-python3 $B/template/scripts/style_profile.py examples/demo-author/samples/* -o $WORK/profile.json --md $WORK/stats.md
+python3 $E/style_profile.py examples/demo-author/samples/* -o $WORK/profile.json --md $WORK/stats.md
 python3 $B/scripts/build_skill.py --name demo-voice --author "the demo author" \
     --profile $WORK/profile.json --notes examples/demo-author/build-inputs/voice_notes.md \
     --watchlist examples/demo-author/build-inputs/watchlist.json --out $WORK/build/demo-voice --force
 python3 $B/scripts/validate_skill.py $WORK/build/demo-voice --samples examples/demo-author/samples/*
-python3 $WORK/build/demo-voice/scripts/ai_tell_lint.py examples/demo-author/draft.tex \
+python3 $E/ai_tell_lint.py examples/demo-author/draft.tex \
     --profile $WORK/build/demo-voice/references/author_profile.json
 ```

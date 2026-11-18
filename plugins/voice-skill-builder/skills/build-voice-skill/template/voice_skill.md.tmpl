@@ -1,0 +1,33 @@
+---
+name: {{name}}
+description: {{description}}
+---
+
+# {{author_title}} voice
+
+This skill holds {{author_possessive}} measured writing style. It was built on {{built}} from {{n_sources}} of
+their own samples ({{n_words}} words). The editing workflow is the `revise-in-voice` skill of the
+voice-skill-builder plugin, so it improves whenever the plugin updates and this skill never needs to be
+reinstalled for that.
+
+## How to use it
+
+1. `VOICE_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
+   folder when the skill loads; Codex and claude.ai do not, so there use the folder this SKILL.md was
+   loaded from.
+2. Load the `revise-in-voice` skill (it may be listed as `voice-skill-builder:revise-in-voice`) and follow
+   it for the user's request, with `VOICE_DIR` set to `${CLAUDE_SKILL_DIR}`.
+3. If no `revise-in-voice` skill is available, do not revise the draft without it. Tell the user that this
+   voice skill needs the voice-skill-builder plugin: in claude.ai, Customize > Plugins > Add > Add
+   marketplace with `JihuLee/editor-not-ghostwriter`, then add Voice Skill Builder; in Claude Code or
+   Codex, `npx skills add JihuLee/editor-not-ghostwriter -g`.
+
+## Files
+
+- `references/author_profile.json`: the measured baseline, recurring slips and settings.
+- `references/author_voice.md`: habits, connectives, recurring slips, notes from reading the samples and
+  standing requests.
+- `references/author_stats.md`: the numbers behind the profile.
+
+To add a standing request or new samples, use the build-voice-skill builder; it rebuilds this skill from
+its own files.

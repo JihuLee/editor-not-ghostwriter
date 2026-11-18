@@ -18,5 +18,12 @@
    tag such as `v0.3.0` does the same.
 
 The workflow checks that the two version numbers and the tag agree, runs the tests, builds
-`build-voice-skill.zip` and publishes release `v<version>` with generated notes and the zip attached. If
-that release already exists, it only replaces the zip.
+`voice-skill-builder.zip` (the whole plugin, for claude.ai's Upload plugin) and publishes release
+`v<version>` with generated notes and the zip attached. If that release already exists, it only replaces
+the zip.
+
+People who added the repository as a marketplace get a change from `main`, release or not, once the
+version in `plugin.json` has gone up: marketplace sync and plugin updates follow the version, so bump it
+for every change that should reach them. Every voice skill then uses the new workflow from its next run. Keep the engine
+able to read profiles from older builds; when the profile format has to change, raise `version` in
+`style_profile.py` and `PROFILE_FORMATS` in `voice_rules.py` together.

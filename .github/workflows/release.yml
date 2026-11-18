@@ -1,6 +1,6 @@
 name: release
 
-# Publishes v<version> with build-voice-skill.zip attached, <version> being the one in plugin.json.
+# Publishes v<version> with voice-skill-builder.zip (the whole plugin) attached, <version> being the one in plugin.json.
 # Run it from the Actions tab on main ("Run workflow"), or push a matching tag (git push origin v0.3.0).
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
       - name: Unit and end-to-end tests
         run: python -m unittest discover -s tests -v
-      - name: Package the builder for claude.ai
+      - name: Package the plugin for manual upload
         run: python tools/make_release.py
       - name: Publish the release
         env:
@@ -50,7 +50,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" dist/build-voice-skill.zip --clobber
+            gh release upload "$TAG" dist/voice-skill-builder.zip --clobber
           else
-            gh release create "$TAG" dist/build-voice-skill.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+            gh release create "$TAG" dist/voice-skill-builder.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
           fi

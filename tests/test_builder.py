@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import sys
 import unittest
@@ -7,10 +8,11 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from _paths import BUILDER, DEMO, ENGINE, SAMPLES
+from _paths import BUILDER, DEMO, ENGINE, ENGINE_SKILL, PLUGIN, ROOT, SAMPLES
 import build_skill
 import find_slips
 import style_profile
+import voice_rules
 
 PY = sys.executable
 INPUTS = DEMO / "build-inputs"
@@ -77,27 +79,83 @@ class TestEndToEnd(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_layout(self):
-        for rel in ["SKILL.md", "references/author_profile.json", "references/author_voice.md",
-                    "references/author_stats.md", "references/reviewer_prompt.md",
-                    "scripts/diff_guard.py", "scripts/ai_tell_lint.py", "scripts/lexicon_en.py"]:
-            self.assertTrue((self.out / rel).exists(), rel)
+        """The default build holds the author's data only and hands the workflow to revise-in-voice."""
+        files = sorted(p.relative_to(self.out).as_posix() for p in self.out.rglob("*") if p.is_file())
+        self.assertEqual(files, ["SKILL.md", "references/author_profile.json", "references/author_stats.md",
+                                 "references/author_voice.md"])
         text = (self.out / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(text.startswith("---\nname: demo-voice\n"))
         self.assertNotIn("{{", text)
+        self.assertIn("`revise-in-voice`", text)
+        self.assertIn("JihuLee/editor-not-ghostwriter", text)
         prof = json.loads((self.out / "references" / "author_profile.json").read_text(encoding="utf-8"))
         self.assertEqual(len(prof["watchlist"]), 3)
         self.assertEqual(prof["skill"]["name"], "demo-voice")
+        self.assertEqual(prof["skill"]["kind"], "voice")
+
+    def test_standalone_layout(self):
+        out = self.work / "build-standalone" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--name", "demo-voice", "--author", "the demo author",
+                "--profile", self.work / "profile.json", "--notes", INPUTS / "voice_notes.md",
+                "--watchlist", INPUTS / "watchlist.json", "--out", out, "--standalone")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for rel in ["references/reviewer_prompt.md", "scripts/diff_guard.py", "scripts/ai_tell_lint.py",
+                    "scripts/lexicon_en.py", "scripts/voice_rules.py"]:
+            self.assertTrue((out / rel).exists(), rel)
+        text = (out / "SKILL.md").read_text(encoding="utf-8")
+        engine = (ENGINE_SKILL / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("---\nname: demo-voice\n"))
+        self.assertIn("# Voice-preserving revision for the demo author\n", text)
+        self.assertNotIn("setup:start", text)
+        self.assertIn('ENGINE_DIR="$SKILL_DIR"; VOICE_DIR="$SKILL_DIR"', text)
+        # the workflow itself is the engine's, word for word
+        self.assertTrue(text.endswith(engine.split("<!-- setup:end -->", 1)[1]))
+        r = run(BUILDER / "validate_skill.py", out, "--samples", *SAMPLES)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        r = run(out / "scripts" / "ai_tell_lint.py", DEMO / "draft.tex",
+                "--profile", out / "references" / "author_profile.json")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("tier-A 'delve'", r.stdout)
+        # a rebuild without --standalone turns it into a voice skill with the same data
+        thin = self.work / "build-thin-again" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--from-skill", out, "--out", thin)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((thin / "scripts").exists())
+        self.assertEqual((thin / "references" / "author_voice.md").read_text(encoding="utf-8"),
+                         (out / "references" / "author_voice.md").read_text(encoding="utf-8"))
 
     def test_delivery_lens_and_attribution(self):
-        prompt = (self.out / "references" / "reviewer_prompt.md").read_text(encoding="utf-8")
+        prompt = (ENGINE_SKILL / "references" / "reviewer_prompt.md").read_text(encoding="utf-8")
         self.assertIn("- **delivery**:", prompt)
         self.assertIn("HABITS", prompt)
         for credit in ["SciWrite by Lorena A. Barba", "https://github.com/labarba/sciwrite", "CC BY 4.0",
                        "https://creativecommons.org/licenses/by/4.0/", "shortened"]:
             self.assertIn(credit, prompt)
-        skill = (self.out / "SKILL.md").read_text(encoding="utf-8")
+        skill = (ENGINE_SKILL / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("Delivery findings are suggestions", skill)
         self.assertIn("research paper", skill)
+
+    def test_voice_rules(self):
+        profile = self.out / "references" / "author_profile.json"
+        r = run(ENGINE / "voice_rules.py", "--profile", profile)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("# Voice rules for the demo author", r.stdout)
+        self.assertIn("Voice skill `demo-voice`", r.stdout)
+        self.assertIn("Never add: tier-A words", r.stdout)
+        self.assertIn('"Additionally,"', r.stdout)
+        self.assertIn("`thm`", r.stdout)
+        pr = json.loads(profile.read_text(encoding="utf-8"))
+        newer = self.work / "newer_profile.json"
+        newer.write_text(json.dumps(dict(pr, version=max(voice_rules.PROFILE_FORMATS) + 1)), encoding="utf-8")
+        r = run(ENGINE / "voice_rules.py", "--profile", newer)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("Update the voice-skill-builder plugin", r.stderr)
+        older = self.work / "older_profile.json"
+        older.write_text(json.dumps(dict(pr, version=1)), encoding="utf-8")
+        r = run(ENGINE / "voice_rules.py", "--profile", older)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("NOTE:", r.stdout)
+        self.assertEqual(run(ENGINE / "voice_rules.py", "--profile", INPUTS / "watchlist.json").returncode, 2)
 
     def test_validate_passes(self):
         r = run(BUILDER / "validate_skill.py", self.out, "--samples", *SAMPLES)
@@ -105,7 +163,7 @@ class TestEndToEnd(unittest.TestCase):
         self.assertIn("0 failure(s)", r.stdout)
 
     def test_built_skill_runs_on_draft(self):
-        r = run(self.out / "scripts" / "ai_tell_lint.py", DEMO / "draft.tex",
+        r = run(ENGINE / "ai_tell_lint.py", DEMO / "draft.tex",
                 "--profile", self.out / "references" / "author_profile.json")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("tier-A 'delve'", r.stdout)
@@ -126,6 +184,7 @@ class TestEndToEnd(unittest.TestCase):
         r = run(BUILDER / "install_skill.py", self.out, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertTrue((home / ".claude" / "skills" / "demo-voice" / "SKILL.md").exists())
+        self.assertIn("revise-in-voice", r.stdout)       # the engine is not installed next to it
         r = run(BUILDER / "install_skill.py", self.out, env=env)
         self.assertNotEqual(r.returncode, 0)
         r = run(BUILDER / "install_skill.py", self.out, "--force", env=env)
@@ -226,6 +285,37 @@ class TestEndToEnd(unittest.TestCase):
                 "--notes", notes, "--out", self.work / "build" / "x-voice")
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("FILL", r.stderr + r.stdout)
+
+
+class TestPluginLayout(unittest.TestCase):
+    def test_engine_skill(self):
+        text = (ENGINE_SKILL / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("---\nname: revise-in-voice\ndescription: "))
+        desc = text.split("\n")[2][len("description: "):]
+        self.assertLessEqual(len(desc), 1024)
+        self.assertNotIn("<", desc)
+        for rel in re.findall(r"ENGINE_DIR/((?:references|scripts)/[\w./-]+\.\w+)", text):
+            self.assertTrue((ENGINE_SKILL / rel).exists(), rel)
+        for name in re.findall(r"`(\w+\.py)`", text):
+            self.assertTrue((ENGINE / name).exists(), name)
+        self.assertNotIn("{{", text)
+
+    def test_versions_agree(self):
+        manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], build_skill.BUILDER_VERSION)
+
+    def test_release_zip_holds_the_whole_plugin(self):
+        with TemporaryDirectory() as tmp:
+            r = run(ROOT / "tools" / "make_release.py", "-o", tmp)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with zipfile.ZipFile(Path(tmp) / "voice-skill-builder.zip") as z:
+                names = z.namelist()
+        for need in ["voice-skill-builder/.claude-plugin/plugin.json",
+                     "voice-skill-builder/skills/build-voice-skill/SKILL.md",
+                     "voice-skill-builder/skills/revise-in-voice/SKILL.md",
+                     "voice-skill-builder/skills/revise-in-voice/scripts/diff_guard.py"]:
+            self.assertIn(need, names)
+        self.assertFalse(any("__pycache__" in n for n in names))
 
 
 if __name__ == "__main__":

@@ -18,7 +18,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(HERE.parent / "template" / "scripts"))
+from enginepath import use_engine              # noqa: E402
+use_engine()
 import prose                                   # noqa: E402
 from esl_candidates import CANDIDATES          # noqa: E402
 

@@ -1,31 +1,29 @@
 ---
-name: {{name}}
-description: Revise {{author_possessive}} own paper, manuscript or other long-form draft (a .tex, .md or .txt file) as a minimal-edit copy editor and reviewer, calibrated to their measured writing style, so the result still reads as their own writing and not as AI text. Use when the user wants to revise, proofread, tighten, fix grammar in, answer reviewer comments on such a draft, or review how clearly it reads, or asks to make it sound less AI-generated or more like their own style. Not for Word or Google Docs files, emails, or other short texts.
+name: revise-in-voice
+description: The editing workflow behind personal voice skills made with build-voice-skill (such as my-voice) - lint, independent reviews, minimal edits, and a guard that reverts edits which change content or add AI tells. Load it when a voice skill says to, or when the user asks to revise, proofread or review a draft with their voice skill. It holds no author profile of its own; if the user has no voice skill yet, offer to build one with build-voice-skill.
 ---
 
-# Voice-preserving revision for {{author}}
+# Voice-preserving revision
 
-The finished text has to read as {{author}} wrote it, so keep your own words out of it: find
+The finished text has to read as the author wrote it, so keep your own words out of it: find
 problems and make the smallest edit that fixes each one. Every word you do not write is a word
 that cannot sound like an LLM. Work as a copy editor and a reviewer, never as a ghostwriter.
 
-This skill was built on {{built}} from {{n_sources}} of {{author_possessive}} own samples ({{n_words}} words).
-
-## Files in this skill
-
-- `references/author_profile.json` - the measured baseline, recurring slips and settings. Scripts read it.
-- `references/author_voice.md` - the author's habits, connectives, recurring slips, worked examples and standing requests. Read before editing.
-- `references/reviewer_prompt.md` - prompt for the review pass.
-- `references/author_stats.md` - generated numbers behind the profile.
-- `scripts/ai_tell_lint.py`, `scripts/diff_guard.py`, `scripts/style_profile.py`, `scripts/detector_check.py`.
-  The tier-A and tier-B word lists are in `scripts/lexicon_en.py`; the lint and the guard name every hit.
+<!-- setup:start -->
+This skill is the workflow. The author's measured style is in their voice skill (for example `my-voice`),
+which sent you here; a newer version of this workflow reaches every voice skill without rebuilding it.
 
 ## Paths and working folder
 
-- `SKILL_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
+- `ENGINE_DIR` is this skill's folder. Claude Code replaces `${CLAUDE_SKILL_DIR}` in this file with that
   folder when the skill loads (a text substitution, not an environment variable). Codex and claude.ai do
   not: there, use the folder this SKILL.md was loaded from, and write it in place of `${CLAUDE_SKILL_DIR}`
-  in the commands below. `PROFILE` is `SKILL_DIR/references/author_profile.json`.
+  in the commands below.
+- `VOICE_DIR` is the folder of the author's voice skill, the one that sent you here. If you came here
+  without one, look for installed voice skills (skill folders that hold `references/author_profile.json`)
+  and use the one the user names, or ask when there are several. If there is none, offer to build one
+  with build-voice-skill and stop.
+- `PROFILE` is `VOICE_DIR/references/author_profile.json`.
 - `RUN` is a scratch folder for this revision, outside the user's repository, for example
   `~/voice-skill-work/runs/<draft-name>/`. Every file this workflow writes (lint.md, issues.md, edited
   copies, guard.md, merged files) goes there; never modify the user's original files.
@@ -34,17 +32,42 @@ Shell variables usually do not survive from one command to the next in an agent'
 the start of every command, or write the full paths in:
 
 ```
-SKILL_DIR="${CLAUDE_SKILL_DIR}"; PROFILE="$SKILL_DIR/references/author_profile.json"; RUN="$HOME/voice-skill-work/runs/draft"; mkdir -p "$RUN"
+ENGINE_DIR="${CLAUDE_SKILL_DIR}"; VOICE_DIR="/path/to/my-voice"; PROFILE="$VOICE_DIR/references/author_profile.json"; RUN="$HOME/voice-skill-work/runs/draft"; mkdir -p "$RUN"
 ```
+<!-- setup:end -->
 
 The scripts need only Python 3.9+ (standard library). For a draft split into several files, run the
 lint and the guard once per file.
+
+## Files
+
+- `VOICE_DIR/references/author_profile.json`: the measured baseline, recurring slips and settings. The
+  scripts read it.
+- `VOICE_DIR/references/author_voice.md`: the author's habits, connectives, recurring slips, worked
+  examples and standing requests. Read it before editing.
+- `VOICE_DIR/references/author_stats.md`: the numbers behind the profile.
+- `ENGINE_DIR/references/reviewer_prompt.md`: the prompt for the review pass.
+- `ENGINE_DIR/scripts/`: `voice_rules.py`, `ai_tell_lint.py`, `diff_guard.py`, `style_profile.py`,
+  `detector_check.py`. The tier-A and tier-B word lists are in `lexicon_en.py`; the lint and the guard name
+  every hit.
 
 ## Workflow
 
 Do the steps in order.
 
 ### 0. Intake
+
+Load the voice first:
+
+```
+python3 "$ENGINE_DIR/scripts/voice_rules.py" --profile "$PROFILE"
+```
+
+It prints whose voice skill this is and the rules that come from their profile: the source layout to
+keep, devices they never use, sentence openers to avoid, frozen LaTeX environments and words allowed for
+them. Follow them in step 4. If it stops with a message that the voice skill is newer than this workflow,
+pass the message to the user and stop; a NOTE about an older voice skill is mentioned once and the run goes
+on. Then read `VOICE_DIR/references/author_voice.md`.
 
 Get every file that holds prose (for LaTeX, the main file and the `\input` section files). Settle, in one
 short question if it is not already clear: what to work on (the whole draft, some sections, or a set of
@@ -66,16 +89,16 @@ experiences or evidence; list what is missing for the author instead.
 If the draft is one of the profile's own samples (the lint and the guard print a warning), build a
 temporary profile from the other samples or other papers by the author, so the draft is not compared with
 itself, and pass that file as `--profile` instead. It lacks the watchlist and settings, so keep the
-built profile's recurring slips in mind by reading `references/author_voice.md`:
+built profile's recurring slips in mind by reading `author_voice.md`:
 
 ```
-python3 "$SKILL_DIR/scripts/style_profile.py" other1.tex other2.tex -o "$RUN/temp_profile.json"
+python3 "$ENGINE_DIR/scripts/style_profile.py" other1.tex other2.tex -o "$RUN/temp_profile.json"
 ```
 
 ### 1. Lint the draft
 
 ```
-python3 "$SKILL_DIR/scripts/ai_tell_lint.py" draft.tex --profile "$PROFILE" -o "$RUN/lint.md"
+python3 "$ENGINE_DIR/scripts/ai_tell_lint.py" draft.tex --profile "$PROFILE" -o "$RUN/lint.md"
 ```
 
 Use the report three ways:
@@ -87,12 +110,12 @@ Use the report three ways:
 
 ### 2. Review: find, don't fix
 
-Run independent reviews with `references/reviewer_prompt.md`, one per lens: math and notation, claims
-versus evidence, clarity and grammar, and delivery (skip delivery for a proofreading-only or lint-only
-run). Fill in the venue and the scope, and for delivery the author's habits from `author_voice.md`. If a
-subagent tool is available, give each lens its own fresh subagent with only the file paths, venue, scope
-and lens (and, for delivery, the habits). Never pass earlier reviews, fix lists, or "we already fixed X":
-a reviewer told what changed rates the text higher without it being better.
+Run independent reviews with `ENGINE_DIR/references/reviewer_prompt.md`, one per lens: math and notation,
+claims versus evidence, clarity and grammar, and delivery (skip delivery for a proofreading-only or
+lint-only run). Fill in the venue and the scope, and for delivery the author's habits from
+`author_voice.md`. If a subagent tool is available, give each lens its own fresh subagent with only the
+file paths, venue, scope and lens (and, for delivery, the habits). Never pass earlier reviews, fix lists,
+or "we already fixed X": a reviewer told what changed rates the text higher without it being better.
 
 Without subagents the reviews cannot be fully independent, so limit the damage: do all lens passes
 before making any edit, re-read the in-scope text for each pass, and skip the second review round in
@@ -117,7 +140,7 @@ checked unchanged.
 
 ### 4. Edit minimally
 
-Read `references/author_voice.md` first. Copy the draft to an edited copy in `RUN` (for example
+Read `author_voice.md` first if you have not. Copy the draft to an edited copy in `RUN` (for example
 `$RUN/edited.tex`) and edit only there.
 
 - Climb only as far as the problem forces you: word (agreement, article, preposition, tense, a wrong term),
@@ -129,13 +152,18 @@ Read `references/author_voice.md` first. Copy the draft to an edited copy in `RU
   claims more than the evidence is a content problem: report it, do not fix it.
 - One sentence in, one sentence out, except for that split and for the de-slop deletions in step 0, both
   of which the guard lists for review. Do not add sentences, transitions, summaries, claims, hedges or
-  intensifiers, and do not vary sentence length or vocabulary to make the text look less machine-made. Never edit at paragraph level: a paragraph that needs restructuring goes to the author with
-  a note on what is wrong.
-- {{layout_rule}}
+  intensifiers, and do not vary sentence length or vocabulary to make the text look less machine-made.
+  Never edit at paragraph level: a paragraph that needs restructuring goes to the author with a note on
+  what is wrong.
+- Keep the layout that `voice_rules.py` describes (line breaks, paragraph breaks, one sentence per line
+  or hard-wrapped).
 - Do not touch equations, inline math, theorem-like statements, proofs, code, numbers, citations, labels or
-  tables.{{frozen_note}} If one of them is wrong, report it with its location.
+  tables, nor the frozen environments `voice_rules.py` lists. If one of them is wrong, report it with its
+  location.
 - Keep the author's connectives (listed in `author_voice.md`) and their use of "we".
-- Never introduce tier-A words ("delve", "pivotal", "seamless", ...), "not only ... but also"{{never_devices}}, or openers such as {{avoid_openers}}.{{dash_rule}}
+- Never introduce what `voice_rules.py` lists under "Never add" (tier-A words such as "delve", "pivotal"
+  and "seamless", "not only ... but also", and devices the author never uses) or the openers it lists, and
+  follow its line on em dashes.
 - Never introduce the framing LLM prose leans on, such as a "not X but Y" correction, a colon that sets
   up the point, mirrored sentence pairs, or repeated emphasis (extra bold, a key message stated again).
 - Leave no notes or comments in the draft; notes for the author go in the report.
@@ -143,7 +171,7 @@ Read `references/author_voice.md` first. Copy the draft to an edited copy in `RU
 ### 5. Guard: keep only voice-preserving edits
 
 ```
-python3 "$SKILL_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile "$PROFILE" \
+python3 "$ENGINE_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile "$PROFILE" \
     --merged "$RUN/merged.tex" --report "$RUN/guard.md"
 ```
 
@@ -164,11 +192,11 @@ python3 "$SKILL_DIR/scripts/diff_guard.py" draft.tex "$RUN/edited.tex" --profile
   the profile's settings, are not flagged.)
 - Repeat until each remaining WARN is one you can justify to the author in a sentence.
 - Unattended runs: add `--strict` so WARN edits are reverted too.
-- Optional, on a GPU machine: `scripts/detector_check.py draft.tex merged.tex` scores changed paragraphs
-  before and after with a local detector. Treat its scores as a diagnostic: a paragraph whose score moved
-  toward machine-written gets a second look, and its edits are kept or reverted on what you read, not on the
-  score alone. Never rewrite toward a detector score, and do not upload an unpublished manuscript to an
-  online detector.
+- Optional, on a GPU machine: `scripts/detector_check.py draft.tex merged.tex` (in `ENGINE_DIR`) scores
+  changed paragraphs before and after with a local detector. Treat its scores as a diagnostic: a paragraph
+  whose score moved toward machine-written gets a second look, and its edits are kept or reverted on what you
+  read, not on the score alone. Never rewrite toward a detector score, and do not upload an unpublished
+  manuscript to an online detector.
 
 ### 6. Deliver
 
@@ -181,8 +209,9 @@ Give the author:
 3. What you did not fix: content issues from the review, flagged edits that need the author, and
    passages the lint suggests they rewrite themselves.
 
-Stop after two rounds; this is an operating rule of this skill, not a measured optimum. A second round re-reviews only the changed paragraphs, with fresh reviewers, and only
-when subagents are available. Further rounds mostly trade the author's voice for a reviewer's taste.
+Stop after two rounds; this is an operating rule of this skill, not a measured optimum. A second round
+re-reviews only the changed paragraphs, with fresh reviewers, and only when subagents are available.
+Further rounds mostly trade the author's voice for a reviewer's taste.
 
 ## Standing requests
 
@@ -195,7 +224,7 @@ check that every moved value appears unchanged at its new place. No request over
 the rules in step 4.
 
 When the author states a new lasting preference ("from now on, always ..."), keep to it for the rest of the
-session and tell them it can be added to this skill for good with the build-voice-skill builder.
+session and tell them it can be added to their voice skill for good with the build-voice-skill builder.
 
 ## Reviewer comments (journal or conference revision)
 
