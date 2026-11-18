@@ -152,8 +152,10 @@ In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus 
 
 Your skill holds only your data: your measured style, slips, notes and requests. The editing workflow
 comes from the plugin, so improvements to it reach your skill without a rebuild
-([how this works](docs/usage.md#your-skill-and-the-plugin)). A voice skill built before version 0.9
-carries its own old copy; ask the builder to rebuild it once (no samples needed) and upload the result.
+([how this works](docs/usage.md#your-skill-and-the-plugin)).
+
+<sub>Built your skill before v0.9.0? It still carries its own older copy of the workflow. Ask the builder
+to rebuild it once (no samples needed), then install or upload the result.</sub>
 
 Want it to always do something, such as keeping figure captions short? Add a standing request; the builder
 rebuilds your skill from its own files, so you don't need the samples again:
