@@ -104,6 +104,9 @@ install on your computer: the scripts run in claude.ai's own sandbox.
 2. In a chat, attach your papers and ask Claude to build your voice skill.
 3. Claude hands back `<name>.zip`. Upload it once under **Customize > Skills** and turn it on.
 
+The plugin adds two skills, `build-voice-skill` and `revise-in-voice`. You never call `revise-in-voice`
+yourself: your voice skill loads it whenever you ask it to work on a draft.
+
 New versions arrive by themselves; you upload again only when you add samples or a standing request. The
 plugin also shows up in Claude Code when you sign in there with the same account.
 
@@ -150,9 +153,9 @@ codex plugin add voice-skill-builder@editor-not-ghostwriter
 In Codex, start with `$my-voice` instead. You get `merged.tex` (your draft plus the accepted edits),
 `guard.md` (what was kept, what was reverted and why), and a short list of what is left for you.
 
-Your skill holds only your data: your measured style, slips, notes and requests. The editing workflow
-comes from the plugin, so improvements to it reach your skill without a rebuild
-([how this works](docs/usage.md#your-skill-and-the-plugin)).
+Your skill holds only your data: your measured style, slips, notes and requests. The editing workflow is
+the plugin's `revise-in-voice` skill, which your skill loads by itself, so improvements to it reach your
+skill without a rebuild ([how this works](docs/usage.md#your-skill-and-the-plugin)).
 
 <sub>Built your skill before v0.9.0? It still carries its own older copy of the workflow. Ask the builder
 to rebuild it once (no samples needed), then install or upload the result.</sub>
