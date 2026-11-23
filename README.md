@@ -167,6 +167,9 @@ rebuilds your skill from its own files, so you don't need the samples again:
 /build-voice-skill Add to my-voice: keep figure captions short and move experimental details to the text.
 ```
 
+Or just say it while your skill is working ("from now on, always ..."): it follows the request for the
+rest of the session and, at the end, offers to add it to your skill for good.
+
 ## Good to know
 
 - **Private by default.** Nothing leaves your machine except what Claude itself reads. The built skill

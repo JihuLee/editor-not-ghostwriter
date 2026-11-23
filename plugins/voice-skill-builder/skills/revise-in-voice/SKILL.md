@@ -208,6 +208,8 @@ Give the author:
    result and your meaning review (step 5) as two separate lines.
 3. What you did not fix: content issues from the review, flagged edits that need the author, and
    passages the lint suggests they rewrite themselves.
+4. If the author stated a lasting preference during the run, the offer to save it ("Standing requests"
+   below).
 
 Stop after two rounds; this is an operating rule of this skill, not a measured optimum. A second round
 re-reviews only the changed paragraphs, with fresh reviewers, and only when subagents are available.
@@ -223,8 +225,19 @@ only when the author asks, after the guard, as a separate pass on the merged fil
 check that every moved value appears unchanged at its new place. No request overrides frozen content or
 the rules in step 4.
 
-When the author states a new lasting preference ("from now on, always ..."), keep to it for the rest of the
-session and tell them it can be added to their voice skill for good with the build-voice-skill builder.
+When the author states a new lasting preference ("from now on, always ...", "never ... in my papers"),
+keep to it for the rest of the session. At the end of the run (in step 6, or after the lint when that was
+all they asked for), ask once whether to add it to their voice skill for good; do not stop an edit or a
+guard pass to ask. An instruction for this draft only ("in this section, ...") is not a lasting
+preference, so do not offer to save it.
+
+If they agree, load the build-voice-skill skill and follow its "Updating the skill" section for adding a
+standing request, with `VOICE_DIR` as the skill folder: it checks the request first (one that needs more
+rewriting than the guard allows is turned into something to report instead, with the author's
+agreement), rebuilds the voice skill from its own files with no samples needed, validates it, and installs
+it or hands it over. Then say what the author still has to do: nothing in Claude Code or Codex after the
+install; in claude.ai, save the `.skill` file Claude hands over, or upload the zip under Customize >
+Skills. If the builder is not available, give them the request as one sentence they can add later.
 
 ## Reviewer comments (journal or conference revision)
 

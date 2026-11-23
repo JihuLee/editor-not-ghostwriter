@@ -44,7 +44,7 @@ ENGINE = use_engine()
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.9.0"
+BUILDER_VERSION = "0.9.1"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
