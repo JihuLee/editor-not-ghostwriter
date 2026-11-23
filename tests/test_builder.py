@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from _paths import BUILDER, DEMO, ENGINE, ENGINE_SKILL, PLUGIN, ROOT, SAMPLES
+from _paths import BUILDER, DEMO, ENGINE, ENGINE_SKILL, PLUGIN, ROOT, SAMPLES, SKILL
 import build_skill
 import find_slips
 import style_profile
@@ -299,6 +299,11 @@ class TestPluginLayout(unittest.TestCase):
         for name in re.findall(r"`(\w+\.py)`", text):
             self.assertTrue((ENGINE / name).exists(), name)
         self.assertNotIn("{{", text)
+        # the engine sends a lasting preference to a named section of the builder
+        for section in re.findall(r'build-voice-skill skill and follow its "([^"]+)" section', text):
+            builder = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn(f"\n## {section}\n", builder)
+        self.assertIn("Updating the skill", text)
 
     def test_versions_agree(self):
         manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
