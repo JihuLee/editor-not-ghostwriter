@@ -162,6 +162,13 @@ automatically; in Claude Code or Codex, `npx skills add JihuLee/editor-not-ghost
   Skills and turns it on. This upload is needed again only when the voice skill is rebuilt (new samples
   or standing requests), never for a plugin update. If you can hand files to the user in the chat, pass `--ext skill` and send the
   `.skill` file; its card offers a "Save skill" button where the organization allows it.
+- **Private repository (optional)**: for a user who updates the skill often and has a private GitHub
+  repository for it, `python3 "$SKILL_DIR/scripts/publish_skill.py" "$WORK/build/NAME" --repo CLONE` puts it
+  in a local clone of that repository as a plugin marketplace and raises the version. Commit and push it
+  (or open a pull request for the user to merge). Once claude.ai follows the repository (Customize >
+  Plugins > Add > Add marketplace, Sync automatically on), every later rebuild reaches claude.ai, Cowork and
+  Claude Code without an upload; the uploaded copy under Customize > Skills should then be removed. Offer
+  this only when the user asks how to stop re-uploading; it is never required.
 - If another skill with the same purpose is installed (an older voice skill, or a generic revision skill),
   tell the user: two skills with near-identical descriptions compete for the same requests. Suggest
   removing the old one, or invoking the new one by name.
@@ -201,7 +208,18 @@ python3 "$SKILL_DIR/scripts/build_skill.py" --from-skill SKILL_FOLDER --add-requ
 
 To change or remove requests, write the full list to `$WORK/requests.md` and pass `--requests` instead of
 `--add-request`. Rebuilds are voice skills unless `--standalone` is given again. Validate (with
-`--samples` if they are at hand) and install or package as in step 8.
+`--samples` if they are at hand), then put the result back where the skill came from:
+
+- **Installed in Claude Code or Codex** (`~/.claude/skills/NAME/`, `~/.agents/skills/NAME/`): install it
+  again with `--force`.
+- **A claude.ai skill, and you are in a claude.ai chat**: package it with `--ext skill` and hand over the
+  file. The user clicks Save skill, then Upload and replace.
+- **A claude.ai skill, and you are in Claude Code** (its folder is under `~/.claude/skills/synced/`): Claude
+  Code cannot save to the claude.ai account. Tell the user that the same request made in a claude.ai chat
+  replaces the skill in one click, and hand over the packaged zip for upload under Customize > Skills in
+  case they prefer that.
+- **From the user's private repository** (installed as a plugin, its folder under `~/.claude/plugins/`):
+  publish it with `publish_skill.py` into a clone of that repository and push it, as in step 8.
 
 ## Privacy
 
