@@ -44,7 +44,7 @@ ENGINE = use_engine()
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.9.1"
+BUILDER_VERSION = "0.9.2"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
@@ -346,6 +346,14 @@ def build(args):
     if not args.standalone:
         print("It uses the revise-in-voice skill of the voice-skill-builder plugin for the editing workflow; "
               "keep the plugin installed wherever you use this skill.")
+    source = Path(args.from_skill).expanduser().resolve().as_posix() if args.from_skill else ""
+    if "/.claude/skills/synced/" in source:
+        print("NOTE: the source is a claude.ai account skill synced into Claude Code, which cannot save to the "
+              "account. The same request made in a claude.ai chat replaces it with one click (Save skill, then "
+              "Upload and replace); otherwise upload the packaged zip under Customize > Skills.")
+    elif "/.claude/plugins/" in source:
+        print("NOTE: the source was installed from a plugin, such as your private repository. Publish the "
+              "rebuild there with publish_skill.py and push it; reinstalling it locally would be overwritten.")
     if git_unignored(out):
         print(f"WARNING: {out} is inside a git repository and not ignored. The skill holds statistics and short "
               "quotes from your writing; add it to .gitignore or build outside the repository.")

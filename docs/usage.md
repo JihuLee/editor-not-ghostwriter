@@ -47,6 +47,27 @@ workflow with its scripts (lint, guard, reviewer prompt). Your voice skill holds
 A voice skill built before version 0.9 is a standalone build. Rebuild it once with `--from-skill` (no
 samples needed) to turn it into one that follows the plugin.
 
+## Keeping your skill in a private repository (optional)
+
+Your own data changes too: a new standing request, new samples. In Claude Code and Codex the builder
+simply reinstalls the skill. On claude.ai a rebuilt skill has to be saved again; from a claude.ai chat that
+is one click (Save skill, then Upload and replace), but Claude Code cannot save to your claude.ai account.
+If you update often and do it from Claude Code, keep the skill in a private GitHub repository instead:
+
+1. Create an empty **private** repository, for example `you/my-voice-skill`, and clone it.
+2. Build or rebuild the skill as usual, then
+   `python3 $BUILDER/publish_skill.py $WORK/build/my-voice --repo ~/src/my-voice-skill`. It lays the
+   repository out as a plugin marketplace (`plugins/my-voice/skills/my-voice/`) and raises the plugin
+   version, which is what marketplace sync follows. Commit and push, or merge a pull request.
+3. On claude.ai, Customize > Plugins > Add > Add marketplace with `you/my-voice-skill`. Give the Claude
+   GitHub App access to the repository when asked, turn on **Sync automatically**, and add the plugin.
+   Then remove the copy you uploaded under Customize > Skills, so only one is active.
+
+From then on, ask the builder in Claude Code to change your skill and to publish it to the repository;
+once the change is on the default branch, claude.ai, Cowork and Claude Code pick it up (or use Check for
+updates). The repository holds statistics and a few quoted sentences from your writing, never the
+samples themselves: keep it private. In Claude Code the skill is then called `/my-voice:my-voice`.
+
 ## Scripts only
 
 ```bash
@@ -130,7 +151,8 @@ plugins/voice-skill-builder/
   skills/build-voice-skill/
     SKILL.md                             the builder workflow Claude follows
     references/                          interview, voice-notes guide, watchlist format
-    scripts/                             find_slips, build_skill, validate_skill, package_skill, install_skill
+    scripts/                             find_slips, build_skill, validate_skill, package_skill, install_skill,
+                                         publish_skill
     template/                            SKILL.md of a voice skill; setup block of a standalone build
   skills/revise-in-voice/
     SKILL.md                             the editing workflow every voice skill loads

@@ -170,6 +170,12 @@ rebuilds your skill from its own files, so you don't need the samples again:
 Or just say it while your skill is working ("from now on, always ..."): it follows the request for the
 rest of the session and, at the end, offers to add it to your skill for good.
 
+On claude.ai, ask in a chat: Claude hands you the rebuilt skill as a card, and **Save skill**, then
+**Upload and replace**, swaps it in. (Claude Code cannot save to your claude.ai account, so there you would
+get a zip to upload.) If you change your skill often, you can also keep it in a private GitHub repository
+that claude.ai follows, so every rebuild arrives by itself; this is optional
+([how](docs/usage.md#keeping-your-skill-in-a-private-repository-optional)).
+
 ## Good to know
 
 - **Private by default.** Nothing leaves your machine except what Claude itself reads. The built skill

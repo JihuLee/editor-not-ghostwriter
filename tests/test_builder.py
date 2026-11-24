@@ -219,6 +219,37 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual([p.name for p in dest.iterdir()], ["demo-voice"])
         self.assertEqual(len(list((dest.parent / "skill-backups").iterdir())), 1)
 
+    def test_publish_to_private_repo(self):
+        repo = self.work / "my-voice-repo"
+        repo.mkdir()
+        r = run(BUILDER / "publish_skill.py", self.out, "--repo", repo)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        plugin = repo / "plugins" / "demo-voice"
+        market = json.loads((repo / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        self.assertEqual(market["plugins"][0]["source"], "./plugins/demo-voice")
+        manifest = json.loads((plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual((manifest["name"], manifest["version"]), ("demo-voice", "1.0.0"))
+        published = sorted(p.relative_to(plugin / "skills" / "demo-voice").as_posix()
+                           for p in (plugin / "skills" / "demo-voice").rglob("*") if p.is_file())
+        self.assertEqual(published, sorted(p.relative_to(self.out).as_posix()
+                                           for p in self.out.rglob("*") if p.is_file()))
+        self.assertTrue((repo / "README.md").exists())
+
+        # the same build again changes nothing; a rebuild with a new request raises the version
+        r = run(BUILDER / "publish_skill.py", self.out, "--repo", repo)
+        self.assertIn("unchanged", r.stdout)
+        rebuilt = self.work / "build-publish" / "demo-voice"
+        r = run(BUILDER / "build_skill.py", "--from-skill", plugin / "skills" / "demo-voice",
+                "--add-request", "Flag undefined acronyms.", "--out", rebuilt)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = run(BUILDER / "publish_skill.py", rebuilt, "--repo", repo)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        manifest = json.loads((plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], "1.0.1")
+        self.assertIn("Flag undefined acronyms.",
+                      (plugin / "skills" / "demo-voice" / "references" / "author_voice.md").read_text(encoding="utf-8"))
+        self.assertNotEqual(run(BUILDER / "publish_skill.py", INPUTS, "--repo", repo).returncode, 0)
+
     def test_config_is_checked(self):
         bad = self.work / "bad_config.json"
         bad.write_text('{"latex": {"frozen": ["x"]}}', encoding="utf-8")
