@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import prose                # noqa: E402
+import structure            # noqa: E402
 import tells as tl          # noqa: E402
 
 
@@ -154,7 +155,8 @@ def lint(path, pr, top=15):
     rules = tl.Rules(pr)
     doc = prose.extract(Path(path), config=(pr or {}).get("config"))
     res = {"file": str(path), "format": doc.fmt, "hard": [], "grammar": [], "paragraphs": [], "drift": [],
-           "soft": [], "chunks": [], "circular": profile_source_match(pr, Path(path).read_bytes())}
+           "soft": [], "chunks": [], "circular": profile_source_match(pr, Path(path).read_bytes()),
+           "structure": None}
     for p in doc.paragraphs:
         for s in p.sentences:
             for what, line in sentence_tells(s, rules):
@@ -209,6 +211,8 @@ def lint(path, pr, top=15):
         p95 = _get(pr, "function_words", "delta_loo_p95", default=None)
         for a, b, d in chunk_deltas(doc, pr):
             res["chunks"].append({"lines": [a, b], "delta": round(d, 3), "flag": bool(p95 and d > p95)})
+        if pr.get("structure") and doc.fmt in prose.DRAFT_FORMATS:
+            res["structure"] = structure.compare([path], pr["structure"], pr.get("config"))
     return res
 
 
@@ -258,6 +262,16 @@ def to_markdown(res, pr):
             out += ["", f"Function-word drift: {len(flagged)} of {len(res['chunks'])} chunks exceed the author's p95."]
             for c in flagged:
                 out.append(f"- l.{c['lines'][0]}-{c['lines'][1]}: Delta {c['delta']}")
+    sres = res.get("structure")
+    if sres:
+        out += ["", "## 5. Structure against the author's baseline",
+                "Report only: how to divide or reorder sections is the author's call.", ""]
+        if sres["rows"]:
+            out += ["| item | draft | author | flag |", "|---|---|---|---|"]
+            for r in sres["rows"]:
+                out.append(f"| {r['item']} | {r['draft']} | {r['author']} | {'**check**' if r['flag'] else ''} |")
+        for note in sres["notes"]:
+            out += ["", note]
     out.append("")
     return "\n".join(out)
 

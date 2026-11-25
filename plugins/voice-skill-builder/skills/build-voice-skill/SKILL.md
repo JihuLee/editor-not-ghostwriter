@@ -76,7 +76,10 @@ continue and mention the thin baseline in your final message.
 python3 "$ENGINE/style_profile.py" SAMPLE1 SAMPLE2 ... -o "$WORK/profile.json" --md "$WORK/stats.md" --check
 ```
 
-`SAMPLE1 SAMPLE2 ...` here and below are the files or folders settled in step 2.
+`SAMPLE1 SAMPLE2 ...` here and below are the files or folders settled in step 2. If the user chose to
+include section structure (interview question 6), add `--structure`: the profile then also records
+section order, lengths, heading use and title style. For a paper split into files, include its main file,
+so the sections are read in `\input` order.
 
 Read the `--check` output before going on:
 - "markup left in a sentence": the extractor missed an environment or macro. If it is an environment that
@@ -105,7 +108,8 @@ each entry. An empty list `[]` is fine when the author makes no recurring slips.
 
 Follow `references/voice_notes_guide.md`: read a spread of the samples next to `$WORK/stats.md` and fill
 in `$WORK/voice_notes.md` from the template there. These notes become the qualitative half of the built
-skill's `author_voice.md`.
+skill's `author_voice.md`. With `--structure`, also fill the template's optional "Structure" part; the
+headings of the samples can include template or venue boilerplate, which the notes should name.
 
 ## 6. Build
 
@@ -192,7 +196,8 @@ A voice skill built before version 0.9 carries its own copy of an older workflow
 own files, as below without `--add-request`, turns it into a voice skill that follows the plugin; upload
 or install the result once more.
 
-To take in new samples, rerun steps 3 to 8 with all samples, old and new. Reuse `watchlist.json`,
+To take in new samples, rerun steps 3 to 8 with all samples, old and new (with `--structure` again if
+the old profile has a `structure` block). Reuse `watchlist.json`,
 `voice_notes.md` and `config.json`, refreshing the watchlist counts from a new `find_slips.py` run and
 editing the notes where the new samples change the picture. Build and install with `--force`.
 

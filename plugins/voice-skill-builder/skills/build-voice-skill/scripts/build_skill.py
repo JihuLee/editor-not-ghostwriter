@@ -41,10 +41,11 @@ TEMPLATE = HERE.parent / "template"
 sys.path.insert(0, str(HERE))
 from enginepath import use_engine   # noqa: E402
 ENGINE = use_engine()
+import structure       # noqa: E402
 import style_profile   # noqa: E402
 import tells as tl     # noqa: E402
 
-BUILDER_VERSION = "0.9.2"
+BUILDER_VERSION = "0.10.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 RESERVED = ("claude", "anthropic")
 FILL_RE = re.compile(r"<!--\s*FILL", re.I)
@@ -162,6 +163,15 @@ def voice_auto(pr, watchlist, author, built, config=None) -> str:
     if allow:
         lines += ["**Allowed for this author** (never flagged, from config.json): "
                   + ", ".join(f"\"{w}\"" for w in allow) + ".", ""]
+    st = (pr.get("structure") or {}).get("summary")
+    if st:
+        lines += ["## Structure (generated)", "",
+                  "Measured from the samples' headings. Use it to judge and report a draft's structure; never "
+                  "divide, merge or reorder sections on your own.", ""]
+        lines += [f"- {x}" for x in structure.describe(st)]
+        if st["titles"]["examples"]:
+            lines.append("- Example titles: " + "; ".join(f"\"{e}\"" for e in st["titles"]["examples"][:8]) + ".")
+        lines.append("")
     lines += ["## Recurring slips (watchlist, generated)", ""]
     if watchlist:
         lines += ["Fix these with the smallest change; they are slips, not style.", "",
