@@ -93,6 +93,19 @@ class TestMeasure(unittest.TestCase):
                          "sentence")
         self.assertEqual(structure.title_case("Omitted Results and Details"), "title")
         self.assertIsNone(structure.title_case("Introduction"))
+        self.assertIsNone(structure.title_case("Selection of $X$"))      # math is not a capital letter
+
+    def test_draft_checked_against_itself_when_the_author_varies(self):
+        base = {"summary": {"n_complete": 0, "titles": {"case": {"sentence": 5, "title": 5}, "words_median": 3}}}
+        tex = ("\\section{Introduction}\nText here for the reader.\n\\section{Fair mixture model for clustering}\n"
+               "Text.\n\\section{Inference by a simple sampler}\nText.\n\\section{Results on real data sets}\nText.\n"
+               "\\section{Effects of the prior choice}\nText.\n\\section{Concluding Remarks}\nText.\n")
+        with TemporaryDirectory() as tmp:
+            f = Path(tmp) / "draft.tex"
+            f.write_text(tex, encoding="utf-8")
+            res = structure.compare([f], base)
+        self.assertTrue(any("draft's own sentence case" in r["item"] for r in res["rows"]))
+        self.assertIn("Concluding Remarks", " ".join(res["notes"]))
 
 
 class TestProfileAndLint(unittest.TestCase):

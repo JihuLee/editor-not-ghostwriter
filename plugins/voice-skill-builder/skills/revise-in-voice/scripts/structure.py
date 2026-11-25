@@ -67,7 +67,7 @@ def clean_title(title: str) -> str:
 def title_case(title: str):
     """'title' (Most Words Capitalised), 'sentence' (only the first word) or None when undecidable."""
     words = re.findall(r"[A-Za-z][A-Za-z'\-]*", title)
-    content = [w for w in words[1:] if w.lower() not in SMALL and not (len(w) > 1 and w.isupper())]
+    content = [w for w in words[1:] if w.lower() not in SMALL and len(w) > 1 and not w.isupper()]
     if not content:
         return None
     caps = sum(w[0].isupper() for w in content) / len(content)
@@ -406,6 +406,17 @@ def compare(draft_paths, base: dict, config=None) -> dict:
                      "flag": bool(other)})
         if other:
             notes.append("Titles in the other case: " + "; ".join(f"\"{t}\"" for t in other[:6]) + ".")
+    else:                       # the author's case varies by paper: check the draft against itself
+        main_titles = [t[1] for t in p["titles"] if t[2] == "main"]
+        decided = [c for c in map(title_case, main_titles) if c]
+        if len(decided) >= 4:
+            own = max(("sentence", "title"), key=decided.count)
+            other = [x for x in main_titles if title_case(x) not in (None, own)]
+            if other and decided.count(own) / len(decided) >= 0.7:
+                rows.append({"item": f"main-text titles not in the draft's own {own} case", "draft": str(len(other)),
+                             "author": "case varies by paper", "flag": True})
+                notes.append("Titles that break the draft's own case: "
+                             + "; ".join(f"\"{x}\"" for x in other[:6]) + ".")
     tw = (s.get("titles") or {}).get("words_median")
     if tw and p["titles"]:
         mine = statistics.median([len(t[1].split()) for t in p["titles"]])
