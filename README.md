@@ -55,7 +55,8 @@ read least like the author.
   out. Every word Claude doesn't write is a word that can't sound like Claude.
 - **Your writing is the baseline.** It measures your sentence rhythm, punctuation, connectives and
   function words. If you really do write "intricate" or use em dashes, they stay. Only your own recurring
-  slips get fixed.
+  slips get fixed. Optionally it also learns how you structure a paper (section order, lengths, titles)
+  and points out where a draft departs from it.
 - **Content is frozen.** Math, numbers (and what they count), citations, theorem statements, proofs and
   code are off limits, and an edit that flips a claim's direction, certainty or scope is reverted.
 - **Reviewers start fresh.** Independent reviews (math, claims, grammar, and delivery: how clearly the

@@ -107,15 +107,19 @@ Use the report three ways:
   it may have been drafted or polished with an LLM earlier. Tell the author which paragraphs and why, and
   recommend they rewrite those themselves.
 - **Drift** (section 4) shows whether the draft as a whole has moved away from the author's baseline.
+- **Structure** (section 5, only when the profile has a structure baseline) compares section order,
+  lengths and headings with the author's papers. Pass what it flags to the author as observations;
+  dividing, merging or reordering sections is their call.
 
 ### 2. Review: find, don't fix
 
 Run independent reviews with `ENGINE_DIR/references/reviewer_prompt.md`, one per lens: math and notation,
 claims versus evidence, clarity and grammar, and delivery (skip delivery for a proofreading-only or
 lint-only run). Fill in the venue and the scope, and for delivery the author's habits from
-`author_voice.md`. If a subagent tool is available, give each lens its own fresh subagent with only the
-file paths, venue, scope and lens (and, for delivery, the habits). Never pass earlier reviews, fix lists,
-or "we already fixed X": a reviewer told what changed rates the text higher without it being better.
+`author_voice.md`, with the section-structure lines `voice_rules.py` printed if there are any. If a
+subagent tool is available, give each lens its own fresh subagent with only the file paths, venue, scope
+and lens (and, for delivery, the habits). Never pass earlier reviews, fix lists, or "we already fixed X":
+a reviewer told what changed rates the text higher without it being better.
 
 Without subagents the reviews cannot be fully independent, so limit the damage: do all lens passes
 before making any edit, re-read the in-scope text for each pass, and skip the second review round in

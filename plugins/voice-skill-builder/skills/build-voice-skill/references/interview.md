@@ -31,3 +31,10 @@ Offer the default first. Skip any question the conversation already answered.
 5. **Standing requests (optional).** "Is there anything the editor should always do or watch for in your
    drafts? For example: keep figure captions short."
    - Default: none. Requests can be added later without the samples (SKILL.md, "Updating the skill").
+
+6. **Section structure (optional).** Only ask if the samples include whole papers or long documents with
+   headings. "Should the skill also learn how you structure a paper: section order, how long each part
+   runs, how you use headings and word titles? It then reports drafts that depart from that; it never
+   restructures them."
+   - Default: no. It needs whole papers among the samples; with only a few, it records ranges and
+     examples rather than rules.

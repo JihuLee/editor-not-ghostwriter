@@ -18,6 +18,7 @@ import json
 import sys
 from pathlib import Path
 
+import structure
 import tells as tl
 
 PROFILE_FORMATS = (2,)      # "version" values of author_profile.json this engine reads
@@ -127,6 +128,10 @@ def render(pr) -> str:
         lines.append("- Editable by the author's choice: " + ", ".join(f"`{e}`" for e in unfrozen) + ".")
     if allow:
         lines.append("- Allowed for this author (never flagged): " + ", ".join(f"\"{w}\"" for w in allow) + ".")
+    st = (pr.get("structure") or {}).get("summary")
+    if st:
+        lines += ["", "Section structure (measured on the samples; for reviews and reports, never a reason to "
+                  "restructure on your own):"] + [f"- {x}" for x in structure.describe(st)]
     return "\n".join(lines) + "\n"
 
 

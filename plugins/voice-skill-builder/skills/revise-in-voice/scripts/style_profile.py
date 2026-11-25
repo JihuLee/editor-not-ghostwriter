@@ -3,7 +3,7 @@
 
 usage:
   python style_profile.py sample1.tex sample2.md notes.docx -o author_profile.json \\
-      [--md author_stats.md] [--check] [--no-appendix] [--min-words 3000]
+      [--md author_stats.md] [--check] [--no-appendix] [--min-words 3000] [--structure]
   python style_profile.py ~/papers/ --list
 
 A folder stands for every .tex .md .txt .docx file inside it, subfolders included (hidden
@@ -13,6 +13,10 @@ Use text the author drafted on their own: not co-authors' sections, not text tha
 LLM already polished. The profile is the baseline that ai_tell_lint.py and diff_guard.py
 compare against. --check prints what the extractor saw in each file, so missed macros or
 environments can be fixed before building a skill.
+
+--structure (optional) also measures how the papers are put together: section order, the share of
+words in each kind of section, heading depth, run-in paragraph headings and how titles look. The lint
+then reports a draft's structure against it; nothing is changed because of it.
 """
 from __future__ import annotations
 
@@ -28,6 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import prose                # noqa: E402
+import structure as structure_mod   # noqa: E402
 import tells as tl          # noqa: E402
 
 SPECIAL = {"math", "ref", "author", "url", "code"}
@@ -44,7 +49,7 @@ def _non_english_share(text: str) -> float:
     return sum(1 for ch in letters if ord(ch) > 0x24F) / len(letters)
 
 
-def build_profile(paths, include_appendix=True, min_words=3000, config=None):
+def build_profile(paths, include_appendix=True, min_words=3000, config=None, structure=False):
     paths = prose.collect_sources(paths)
     labels = prose.source_labels(paths)
     docs = []
@@ -161,6 +166,8 @@ def build_profile(paths, include_appendix=True, min_words=3000, config=None):
         "diagnostics": diagnostics,
         "non_english_share": _r(_non_english_share(text)),
     }
+    if structure:
+        profile["structure"] = structure_mod.profile_structure(paths, config)
     return profile
 
 
@@ -221,6 +228,14 @@ def to_markdown(pr: dict) -> str:
         lines += ["", "## LaTeX conventions found",
                   f"- theorem-like environments declared: {', '.join(lx.get('theorem_envs_declared') or []) or 'none'}",
                   f"- simple macros expanded: {', '.join(lx.get('macros_expanded') or []) or 'none'}"]
+    st_ = pr.get("structure")
+    if st_:
+        lines += ["", "## Section structure", ""] + [f"- {x}" for x in structure_mod.describe(st_["summary"])]
+        lines += ["", "| paper | complete | main words | appendix share | sections in order |", "|---|---|---|---|---|"]
+        for p in st_["papers"]:
+            order = " → ".join(structure_mod.SHOWN.get(k, k) for k in p["order"])
+            lines.append(f"| {p['source']} | {'yes' if p['complete'] else 'part'} | {p['main_words']:,} | "
+                         f"{p['appendix_share']:.0%} | {order} |")
     lines.append("")
     return "\n".join(lines)
 
@@ -274,12 +289,15 @@ def main():
     ap.add_argument("--min-words", type=int, default=3000)
     ap.add_argument("--list", action="store_true", help="print the files that would be read, with word counts, and stop")
     ap.add_argument("--config", help="config.json: {'latex': {'frozen_envs_extra', 'unfrozen_envs', 'macros'}}")
+    ap.add_argument("--structure", action="store_true",
+                    help="also measure section structure (order, lengths, headings, title style)")
     a = ap.parse_args()
     config = json.loads(Path(a.config).read_text(encoding="utf-8")) if a.config else None
     if a.list:
         print_list(a.samples, include_appendix=not a.no_appendix, config=config)
         return
-    pr = build_profile(a.samples, include_appendix=not a.no_appendix, min_words=a.min_words, config=config)
+    pr = build_profile(a.samples, include_appendix=not a.no_appendix, min_words=a.min_words, config=config,
+                       structure=a.structure)
     Path(a.out).write_text(json.dumps(pr, indent=1, ensure_ascii=False), encoding="utf-8")
     print(f"profile: {a.out}  ({pr['n_words']:,} words, {pr['n_sentences']} sentences)")
     if a.md:

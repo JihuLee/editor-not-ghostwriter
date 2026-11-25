@@ -47,6 +47,26 @@ workflow with its scripts (lint, guard, reviewer prompt). Your voice skill holds
 A voice skill built before version 0.9 is a standalone build. Rebuild it once with `--from-skill` (no
 samples needed) to turn it into one that follows the plugin.
 
+## Section structure (optional)
+
+Answer yes to the builder's structure question, or pass `--structure` to `style_profile.py`, and the
+profile also records how your papers are put together:
+
+- section order, with sections sorted into kinds by their titles (introduction, related work,
+  preliminaries, method or theory, experiments, discussion, conclusion, appendix);
+- how long each kind runs, as words and as a share of the main text, and how much goes to the appendix;
+- heading use: subsections per section, run-in `\paragraph` headings, the lead before the first subsection;
+- titles: length, sentence case or Title Case, colons.
+
+Commented-out text, `\iffalse` blocks and back matter (acknowledgments, biographies) are left out, and a
+main file that `\input`s other samples is read as one paper. The builder also writes a short "Structure"
+part into your voice notes from reading the samples: how you word titles and what each section holds.
+
+The lint then adds a section 5 that sets a draft's structure next to yours, and the reviewers get the same
+summary. It only reports: dividing, merging or reordering sections stays your call. With two or three
+papers the numbers are ranges and examples, not rules, and a venue's template shapes structure as much as
+you do.
+
 ## Keeping your skill in a private repository (optional)
 
 Your own data changes too: a new standing request, new samples. In Claude Code and Codex the builder
@@ -77,7 +97,7 @@ BUILDER=plugins/voice-skill-builder/skills/build-voice-skill/scripts
 WORK=~/voice-skill-work
 
 python3 $ENGINE/style_profile.py ~/papers --list      # what a folder contributes, with word counts
-python3 $ENGINE/style_profile.py ~/papers -o $WORK/profile.json --md $WORK/stats.md --check
+python3 $ENGINE/style_profile.py ~/papers -o $WORK/profile.json --md $WORK/stats.md --check   # add --structure to also learn section structure
 python3 $BUILDER/find_slips.py ~/papers -o $WORK/slip_candidates.md
 # write $WORK/watchlist.json and $WORK/voice_notes.md (formats in the skill's references/ folder)
 python3 $BUILDER/build_skill.py --name my-voice --profile $WORK/profile.json \

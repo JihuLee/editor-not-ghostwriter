@@ -63,4 +63,13 @@ Draw on the watchlist slips and the section above. Format:
   Fix: "..." (reason)
 If the samples have no errors worth showing, give 3 examples of edits the editor should NOT make, with
 the reason. -->
+
+### Structure
+
+<!-- FILL only when the profile was measured with --structure; otherwise delete this part, heading
+included. 3-6 bullets that the numbers in stats.md cannot give: how section titles are worded
+(descriptive noun phrases, the method's name in a title, patterns such as "Effect of X"), what each kind
+of section contains and in what order (how Experiments open, where settings and baselines go, what the
+conclusion covers), and which headings in the samples are template or venue boilerplate rather than the
+author's choice. Quote one short title as an example for each. -->
 ```
